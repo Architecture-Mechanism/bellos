@@ -2,3 +2,6 @@ publish.sh
 Cargo.toml
 Cargo.lock
 target
+dependencies.txt
+bellande_rustinstaller.py
+scripts

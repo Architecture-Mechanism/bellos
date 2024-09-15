@@ -13,11 +13,12 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+#[allow(dead_code)]
 use glob::glob;
 use std::collections::HashMap;
 use std::env;
-use std::fs::{self, File};
-use std::io::{self, Read, Write};
+use std::fs::File;
+use std::io::{self, BufRead, Read, Write};
 use std::os::unix::io::AsRawFd;
 use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex};
@@ -245,14 +246,11 @@ impl Parser {
             self.position += 1;
             let value = match &self.tokens[self.position] {
                 Token::Word(w) => w.clone(),
-                _ => {
-                    return Err(format!(
-                        "Expected word after assignment, found {:?}",
-                        self.tokens[self.position]
-                    ))
-                }
+                _ => String::new(), // Allow empty assignments
             };
-            self.position += 1;
+            if self.position < self.tokens.len() {
+                self.position += 1;
+            }
             Ok(ASTNode::Assignment { name, value })
         } else {
             let mut args = Vec::new();
@@ -264,6 +262,7 @@ impl Parser {
                         | Token::Semicolon
                         | Token::NewLine
                         | Token::Ampersand
+                        | Token::Assignment
                 )
             {
                 if let Token::Word(w) = &self.tokens[self.position] {
@@ -273,8 +272,7 @@ impl Parser {
                     break;
                 }
             }
-            let command = ASTNode::Command { name, args };
-            self.parse_pipeline_or_redirect(command)
+            Ok(ASTNode::Command { name, args })
         }
     }
 
@@ -644,17 +642,14 @@ impl Interpreter {
         node: Box<ASTNode>,
         input: String,
     ) -> Result<Option<i32>, String> {
-        // Create a temporary file to store the input
         let mut temp_file = tempfile::NamedTempFile::new().map_err(|e| e.to_string())?;
         temp_file
             .write_all(input.as_bytes())
             .map_err(|e| e.to_string())?;
         temp_file.flush().map_err(|e| e.to_string())?;
 
-        // Reopen the temp file as read-only
         let input_file = File::open(temp_file.path()).map_err(|e| e.to_string())?;
 
-        // Replace stdin with our temp file
         let stdin = io::stdin();
         let old_stdin = stdin.lock();
         let new_stdin = unsafe {
@@ -662,10 +657,8 @@ impl Interpreter {
             std::fs::File::from_raw_fd(input_file.as_raw_fd())
         };
 
-        // Execute the node with the new stdin
         let result = self.interpret_node(node);
 
-        // Restore the old stdin
         drop(new_stdin);
         drop(old_stdin);
 
@@ -676,30 +669,67 @@ impl Interpreter {
         let mut result = String::new();
         let mut chars = input.chars().peekable();
         while let Some(c) = chars.next() {
-            if c == '$' && chars.peek().map_or(false, |&next| next != ' ') {
-                let var_name: String = chars
-                    .by_ref()
-                    .take_while(|&c| c.is_alphanumeric() || c == '_')
-                    .collect();
-                if var_name == "*" || var_name == "@" {
-                    // Expand to all arguments
-                    result.push_str(&env::args().skip(1).collect::<Vec<String>>().join(" "));
-                } else if let Ok(value) = env::var(&var_name) {
-                    result.push_str(&value);
-                } else if let Some(value) = self.variables.get(&var_name) {
-                    result.push_str(value);
-                }
-            } else if c == '~' && (chars.peek().is_none() || chars.peek() == Some(&'/')) {
-                if let Ok(home) = env::var("HOME") {
-                    result.push_str(&home);
+            if c == '$' {
+                if chars.peek() == Some(&'(') {
+                    chars.next(); // consume '('
+                    let expr: String = chars.by_ref().take_while(|&c| c != ')').collect();
+                    if expr.starts_with('(') && expr.ends_with(')') {
+                        // Arithmetic expression
+                        let arithmetic_expr = &expr[1..expr.len() - 1];
+                        result.push_str(&self.evaluate_arithmetic(arithmetic_expr).to_string());
+                    }
                 } else {
-                    result.push(c);
+                    let var_name: String = chars
+                        .by_ref()
+                        .take_while(|&c| c.is_alphanumeric() || c == '_')
+                        .collect();
+                    if let Some(value) = self.variables.get(&var_name) {
+                        result.push_str(value);
+                    } else if let Ok(value) = env::var(&var_name) {
+                        result.push_str(&value);
+                    }
                 }
             } else {
                 result.push(c);
             }
         }
         result
+    }
+
+    fn evaluate_arithmetic(&self, expr: &str) -> i32 {
+        // This is a simple implementation. For a more robust solution,
+        // consider using a proper expression parser and evaluator.
+        let tokens: Vec<&str> = expr.split_whitespace().collect();
+        if tokens.len() != 3 {
+            return 0; // Invalid expression
+        }
+
+        let a = self.get_var_value(tokens[0]);
+        let b = self.get_var_value(tokens[2]);
+
+        match tokens[1] {
+            "+" => a + b,
+            "-" => a - b,
+            "*" => a * b,
+            "/" => {
+                if b != 0 {
+                    a / b
+                } else {
+                    0
+                }
+            }
+            _ => 0, // Unsupported operation
+        }
+    }
+
+    fn get_var_value(&self, var: &str) -> i32 {
+        if let Some(value) = self.variables.get(var) {
+            value.parse().unwrap_or(0)
+        } else if let Ok(value) = env::var(var) {
+            value.parse().unwrap_or(0)
+        } else {
+            var.parse().unwrap_or(0)
+        }
     }
 
     fn expand_wildcards(&self, pattern: &str) -> Vec<String> {
@@ -720,42 +750,82 @@ fn main() -> Result<(), String> {
     if args.len() > 1 {
         // Execute script file
         let filename = &args[1];
-        let content = fs::read_to_string(filename)
-            .map_err(|e| format!("Error reading file {}: {}", filename, e))?;
-        let lexer = Lexer::new(content);
-        let tokens: Vec<Token> = lexer.into_iter().collect();
-        let mut parser = Parser::new(tokens);
-        let ast = parser.parse()?;
-        interpreter.interpret(ast)?;
+        execute_script(&mut interpreter, filename)?;
     } else {
         // Interactive mode
-        loop {
-            print!("bellos> ");
-            io::stdout().flush().unwrap();
-
-            let mut input = String::new();
-            io::stdin().read_line(&mut input).unwrap();
-
-            if input.trim().is_empty() {
-                continue;
-            }
-
-            let lexer = Lexer::new(input);
-            let tokens: Vec<Token> = lexer.into_iter().collect();
-            let mut parser = Parser::new(tokens);
-            match parser.parse() {
-                Ok(ast) => {
-                    if let Err(e) = interpreter.interpret(ast) {
-                        eprintln!("Error: {}", e);
-                    }
-                }
-                Err(e) => eprintln!("Parse error: {}", e),
-            }
-        }
+        run_interactive_mode(&mut interpreter)?;
     }
     Ok(())
 }
 
+fn execute_script(interpreter: &mut Interpreter, filename: &str) -> Result<(), String> {
+    let file =
+        File::open(filename).map_err(|e| format!("Error opening file {}: {}", filename, e))?;
+    let reader = io::BufReader::new(file);
+    let mut lines = reader.lines();
+
+    // Check for shebang
+    if let Some(Ok(first_line)) = lines.next() {
+        if !first_line.starts_with("#!") {
+            // If no shebang, process this line
+            process_line(interpreter, &first_line, 1)?;
+        }
+    }
+
+    // Process remaining lines
+    for (line_num, line) in lines.enumerate() {
+        let line = line.map_err(|e| format!("Error reading line: {}", e))?;
+        process_line(interpreter, &line, line_num + 2)?;
+    }
+
+    Ok(())
+}
+
+fn process_line(interpreter: &mut Interpreter, line: &str, line_num: usize) -> Result<(), String> {
+    let trimmed_line = line.trim();
+    if trimmed_line.is_empty() || trimmed_line.starts_with('#') {
+        return Ok(()); // Skip empty lines and comments
+    }
+
+    let lexer = Lexer::new(line.to_string());
+    let tokens: Vec<Token> = lexer.into_iter().collect();
+    let mut parser = Parser::new(tokens);
+    match parser.parse() {
+        Ok(ast) => {
+            if let Err(e) = interpreter.interpret(ast) {
+                eprintln!("Error on line {}: {}", line_num, e);
+            }
+        }
+        Err(e) => eprintln!("Parse error on line {}: {}", line_num, e),
+    }
+    Ok(())
+}
+
+fn run_interactive_mode(interpreter: &mut Interpreter) -> Result<(), String> {
+    loop {
+        print!("bellos> ");
+        io::stdout().flush().unwrap();
+
+        let mut input = String::new();
+        io::stdin().read_line(&mut input).unwrap();
+
+        if input.trim().is_empty() {
+            continue;
+        }
+
+        let lexer = Lexer::new(input);
+        let tokens: Vec<Token> = lexer.into_iter().collect();
+        let mut parser = Parser::new(tokens);
+        match parser.parse() {
+            Ok(ast) => {
+                if let Err(e) = interpreter.interpret(ast) {
+                    eprintln!("Error: {}", e);
+                }
+            }
+            Err(e) => eprintln!("Parse error: {}", e),
+        }
+    }
+}
 impl Iterator for Lexer {
     type Item = Token;
 
