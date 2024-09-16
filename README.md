@@ -151,7 +151,7 @@ echo "Uppercase: ${string^^}"
 echo "Lowercase: ${string,,}"
 ```
 
-## Website NPM
+## Website Crates
 - https://crates.io/crates/bellos
 
 ### Installation
