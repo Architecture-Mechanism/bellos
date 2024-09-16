@@ -12,6 +12,9 @@
 - Environment variables
 - redirection support
 
+## Bellande Rust Executable Builder
+- https://github.com/Algorithm-Model-Research/bellande_rust_executable
+
 ## BELLOS Usage
 ```
 #!/usr/bin/env bellos
