@@ -447,7 +447,8 @@ impl Interpreter {
         match *node {
             ASTNode::Command { name, args } => self.execute_command(name, args),
             ASTNode::Assignment { name, value } => {
-                self.variables.insert(name, self.expand_variables(&value));
+                let expanded_value = self.expand_variables(&value);
+                self.variables.insert(name, expanded_value);
                 Ok(None)
             }
             ASTNode::Pipeline(commands) => self.execute_pipeline(commands),
@@ -467,10 +468,10 @@ impl Interpreter {
                 then_block,
                 else_block,
             } => {
-                if self.interpret_node(Box::new(*condition))? == Some(0) {
-                    self.interpret_node(Box::new(*then_block))
+                if self.interpret_node(condition)? == Some(0) {
+                    self.interpret_node(then_block)
                 } else if let Some(else_block) = else_block {
-                    self.interpret_node(Box::new(*else_block))
+                    self.interpret_node(else_block)
                 } else {
                     Ok(None)
                 }
@@ -507,9 +508,11 @@ impl Interpreter {
     }
 
     fn execute_command(&mut self, name: String, args: Vec<String>) -> Result<Option<i32>, String> {
+        let expanded_name = self.expand_variables(&name);
         let expanded_args: Vec<String> =
             args.iter().map(|arg| self.expand_variables(arg)).collect();
-        match name.as_str() {
+
+        match expanded_name.as_str() {
             "echo" => {
                 println!("{}", expanded_args.join(" "));
                 Ok(Some(0))
@@ -544,10 +547,9 @@ impl Interpreter {
                 Ok(Some(0))
             }
             _ => {
-                if let Some(func) = self.functions.get(&name) {
+                if let Some(func) = self.functions.get(&expanded_name) {
                     return self.interpret_node(Box::new(func.clone()));
                 }
-                let expanded_name = self.expand_variables(&name);
                 match Command::new(&expanded_name).args(&expanded_args).spawn() {
                     Ok(mut child) => {
                         let status = child.wait().map_err(|e| e.to_string())?;
@@ -559,6 +561,85 @@ impl Interpreter {
         }
     }
 
+    fn evaluate_arithmetic(&self, expr: &str) -> i32 {
+        let tokens: Vec<&str> = expr.split_whitespace().collect();
+        if tokens.len() != 3 {
+            return 0; // Invalid expression
+        }
+
+        let a = self.get_var_value(tokens[0]);
+        let b = self.get_var_value(tokens[2]);
+
+        match tokens[1] {
+            "+" => a + b,
+            "-" => a - b,
+            "*" => a * b,
+            "/" => {
+                if b != 0 {
+                    a / b
+                } else {
+                    0
+                }
+            }
+            "%" => {
+                if b != 0 {
+                    a % b
+                } else {
+                    0
+                }
+            }
+            _ => 0, // Unsupported operation
+        }
+    }
+
+    fn get_var_value(&self, var: &str) -> i32 {
+        if let Some(value) = self.variables.get(var) {
+            value.parse().unwrap_or(0)
+        } else if let Ok(value) = env::var(var) {
+            value.parse().unwrap_or(0)
+        } else {
+            var.parse().unwrap_or(0)
+        }
+    }
+
+    fn evaluate_condition(&mut self, condition: &ASTNode) -> Result<bool, String> {
+        match condition {
+            ASTNode::Command { name, args } => {
+                let expanded_args: Vec<String> =
+                    args.iter().map(|arg| self.expand_variables(arg)).collect();
+                match name.as_str() {
+                    "[" | "test" => {
+                        if expanded_args.len() < 3 || expanded_args.last() != Some(&"]".to_string())
+                        {
+                            return Err("Invalid test condition".to_string());
+                        }
+                        match expanded_args[1].as_str() {
+                            "-eq" => Ok(expanded_args[0] == expanded_args[2]),
+                            "-ne" => Ok(expanded_args[0] != expanded_args[2]),
+                            "-lt" => Ok(expanded_args[0].parse::<i32>().unwrap_or(0)
+                                < expanded_args[2].parse::<i32>().unwrap_or(0)),
+                            "-le" => Ok(expanded_args[0].parse::<i32>().unwrap_or(0)
+                                <= expanded_args[2].parse::<i32>().unwrap_or(0)),
+                            "-gt" => Ok(expanded_args[0].parse::<i32>().unwrap_or(0)
+                                > expanded_args[2].parse::<i32>().unwrap_or(0)),
+                            "-ge" => Ok(expanded_args[0].parse::<i32>().unwrap_or(0)
+                                >= expanded_args[2].parse::<i32>().unwrap_or(0)),
+                            "-z" => Ok(expanded_args[0].is_empty()),
+                            "-n" => Ok(!expanded_args[0].is_empty()),
+                            "=" => Ok(expanded_args[0] == expanded_args[2]),
+                            "!=" => Ok(expanded_args[0] != expanded_args[2]),
+                            _ => Err(format!("Unsupported test condition: {}", expanded_args[1])),
+                        }
+                    }
+                    _ => {
+                        let result = self.execute_command(name.clone(), expanded_args)?;
+                        Ok(result == Some(0))
+                    }
+                }
+            }
+            _ => Err("Invalid condition node".to_string()),
+        }
+    }
     fn execute_pipeline(&mut self, commands: Vec<ASTNode>) -> Result<Option<i32>, String> {
         let mut previous_stdout = None;
         let mut processes = Vec::new();
@@ -611,7 +692,6 @@ impl Interpreter {
                 let result = self.capture_output(Box::new(node))?;
                 file.write_all(result.as_bytes())
                     .map_err(|e| e.to_string())?;
-                print!("{}", result);
                 Ok(Some(0))
             }
             "<" => {
@@ -694,42 +774,6 @@ impl Interpreter {
             }
         }
         result
-    }
-
-    fn evaluate_arithmetic(&self, expr: &str) -> i32 {
-        // This is a simple implementation. For a more robust solution,
-        // consider using a proper expression parser and evaluator.
-        let tokens: Vec<&str> = expr.split_whitespace().collect();
-        if tokens.len() != 3 {
-            return 0; // Invalid expression
-        }
-
-        let a = self.get_var_value(tokens[0]);
-        let b = self.get_var_value(tokens[2]);
-
-        match tokens[1] {
-            "+" => a + b,
-            "-" => a - b,
-            "*" => a * b,
-            "/" => {
-                if b != 0 {
-                    a / b
-                } else {
-                    0
-                }
-            }
-            _ => 0, // Unsupported operation
-        }
-    }
-
-    fn get_var_value(&self, var: &str) -> i32 {
-        if let Some(value) = self.variables.get(var) {
-            value.parse().unwrap_or(0)
-        } else if let Ok(value) = env::var(var) {
-            value.parse().unwrap_or(0)
-        } else {
-            var.parse().unwrap_or(0)
-        }
     }
 
     fn expand_wildcards(&self, pattern: &str) -> Vec<String> {
