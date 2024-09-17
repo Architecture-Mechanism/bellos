@@ -1,6 +1,6 @@
 # bellos
 
-## Bellande Operating System Scripting Programming Language written in Rust
+## Bellande Operating System Scripting Language written in Rust
 - Variable Assignment
 - Command Execution
 - I/O Redirection
