@@ -171,11 +171,10 @@ impl Lexer {
             "else" => Token::Else,
             "fi" => Token::Fi,
             "while" => Token::While,
+            "for" => Token::For,
             "do" => Token::Do,
             "done" => Token::Done,
-            "for" => Token::For,
             "in" => Token::In,
-            "function" => Token::Function,
             _ => Token::Word(word),
         }
     }

@@ -12,8 +12,11 @@
 - Environment variables
 - redirection support
 
-## Bellande Rust Executable Builder
-- https://github.com/Algorithm-Model-Research/bellande_rust_executable
+
+# Bellos executable run scripts
+```
+./bellos hello_world.bellos 
+```
 
 ## BELLOS Usage
 ```
@@ -26,9 +29,9 @@ echo "Hello, World!"
 # Using variables
 name="Bellos"
 echo "Welcome to $name programming!"
+```
 
-# ----------------------------------------
-
+``` 
 #!/usr/bin/env bellos
 # File: basic_math.bellos
 
@@ -45,9 +48,9 @@ echo "Sum: $sum"
 echo "Difference: $difference"
 echo "Product: $product"
 echo "Quotient: $quotient"
+```
 
-# ----------------------------------------
-
+```
 #!/usr/bin/env bellos
 # File: control_structures.bellos
 
@@ -79,9 +82,9 @@ do
     echo $count
     count=$((count - 1))
 done
+```
 
-# ----------------------------------------
-
+```
 #!/usr/bin/env bellos
 # File: functions.bellos
 
@@ -99,9 +102,10 @@ function add() {
 greet "User"
 result=$(add 3 4)
 echo "3 + 4 = $result"
+```
 
-# ----------------------------------------
 
+```
 #!/usr/bin/env bellos
 # File: file_operations.bellos
 
@@ -124,9 +128,9 @@ done < test.txt
 
 # Cleaning up
 rm test.txt
+```
 
-# ----------------------------------------
-
+```
 #!/usr/bin/env bellos
 # File: string_manipulation.bellos
 
@@ -151,7 +155,7 @@ echo "Uppercase: ${string^^}"
 echo "Lowercase: ${string,,}"
 ```
 
-## Website Crates
+## Website NPM
 - https://crates.io/crates/bellos
 
 ### Installation
