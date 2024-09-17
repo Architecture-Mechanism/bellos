@@ -314,21 +314,9 @@ impl Parser {
         }
     }
 
-    fn parse_block(&mut self) -> Result<ASTNode, String> {
-        self.position += 1; // Consume left paren
-        let mut statements = Vec::new();
-        while self.position < self.tokens.len() && self.tokens[self.position] != Token::RightParen {
-            statements.push(self.parse_statement()?);
-            self.consume_if(Token::Semicolon);
-            self.consume_if(Token::NewLine);
-        }
-        self.position += 1; // Consume right paren
-        Ok(ASTNode::Block(statements))
-    }
-
     fn parse_if(&mut self) -> Result<ASTNode, String> {
         self.position += 1; // Consume 'if'
-        let condition = Box::new(self.parse_statement()?);
+        let condition = Box::new(self.parse_command()?);
         self.expect_token(Token::Then)?;
         let then_block = Box::new(self.parse_block()?);
         let else_block = if self.consume_if(Token::Else) {
@@ -346,7 +334,7 @@ impl Parser {
 
     fn parse_while(&mut self) -> Result<ASTNode, String> {
         self.position += 1; // Consume 'while'
-        let condition = Box::new(self.parse_statement()?);
+        let condition = Box::new(self.parse_command()?);
         self.expect_token(Token::Do)?;
         let block = Box::new(self.parse_block()?);
         self.expect_token(Token::Done)?;
@@ -357,12 +345,7 @@ impl Parser {
         self.position += 1; // Consume 'for'
         let var = match &self.tokens[self.position] {
             Token::Word(w) => w.clone(),
-            _ => {
-                return Err(format!(
-                    "Expected variable name after 'for', found {:?}",
-                    self.tokens[self.position]
-                ))
-            }
+            _ => return Err("Expected variable name after 'for'".to_string()),
         };
         self.position += 1;
         self.expect_token(Token::In)?;
@@ -379,6 +362,46 @@ impl Parser {
         let block = Box::new(self.parse_block()?);
         self.expect_token(Token::Done)?;
         Ok(ASTNode::For { var, list, block })
+    }
+
+    fn parse_block(&mut self) -> Result<ASTNode, String> {
+        let mut statements = Vec::new();
+        while self.position < self.tokens.len()
+            && !matches!(
+                self.tokens[self.position],
+                Token::Fi | Token::Done | Token::Else
+            )
+        {
+            statements.push(self.parse_statement()?);
+            self.consume_if(Token::Semicolon);
+            self.consume_if(Token::NewLine);
+        }
+        Ok(ASTNode::Block(statements))
+    }
+
+    fn parse_command(&mut self) -> Result<ASTNode, String> {
+        let mut args = Vec::new();
+        while self.position < self.tokens.len()
+            && !matches!(
+                self.tokens[self.position],
+                Token::Then | Token::Do | Token::Done | Token::Fi | Token::Else
+            )
+        {
+            if let Token::Word(w) = &self.tokens[self.position] {
+                args.push(w.clone());
+                self.position += 1;
+            } else {
+                break;
+            }
+        }
+        if args.is_empty() {
+            Err("Expected command".to_string())
+        } else {
+            Ok(ASTNode::Command {
+                name: args[0].clone(),
+                args: args[1..].to_vec(),
+            })
+        }
     }
 
     fn parse_function(&mut self) -> Result<ASTNode, String> {
@@ -467,16 +490,15 @@ impl Interpreter {
                 then_block,
                 else_block,
             } => {
-                if self.interpret_node(condition)? == Some(0) {
-                    self.interpret_node(then_block)
+                if self.evaluate_condition(&condition)? {
+                    self.interpret_node(then_block)?;
                 } else if let Some(else_block) = else_block {
-                    self.interpret_node(else_block)
-                } else {
-                    Ok(None)
+                    self.interpret_node(else_block)?;
                 }
+                Ok(None)
             }
             ASTNode::While { condition, block } => {
-                while self.interpret_node(Box::new(*condition.clone()))? == Some(0) {
+                while self.evaluate_condition(&condition)? {
                     self.interpret_node(Box::new(*block.clone()))?;
                 }
                 Ok(None)
@@ -560,44 +582,49 @@ impl Interpreter {
         }
     }
 
-    fn evaluate_arithmetic(&self, expr: &str) -> i32 {
+    fn evaluate_arithmetic(&self, expr: &str) -> Result<i32, String> {
         let tokens: Vec<&str> = expr.split_whitespace().collect();
         if tokens.len() != 3 {
-            return 0; // Invalid expression
+            return Err("Invalid arithmetic expression".to_string());
         }
 
-        let a = self.get_var_value(tokens[0]);
-        let b = self.get_var_value(tokens[2]);
+        let a = self.get_var_value(tokens[0])?;
+        let b = self.get_var_value(tokens[2])?;
 
         match tokens[1] {
-            "+" => a + b,
-            "-" => a - b,
-            "*" => a * b,
+            "+" => Ok(a + b),
+            "-" => Ok(a - b),
+            "*" => Ok(a * b),
             "/" => {
                 if b != 0 {
-                    a / b
+                    Ok(a / b)
                 } else {
-                    0
+                    Err("Division by zero".to_string())
                 }
             }
             "%" => {
                 if b != 0 {
-                    a % b
+                    Ok(a % b)
                 } else {
-                    0
+                    Err("Modulo by zero".to_string())
                 }
             }
-            _ => 0, // Unsupported operation
+            _ => Err(format!("Unsupported operation: {}", tokens[1])),
         }
     }
 
-    fn get_var_value(&self, var: &str) -> i32 {
+    fn get_var_value(&self, var: &str) -> Result<i32, String> {
         if let Some(value) = self.variables.get(var) {
-            value.parse().unwrap_or(0)
+            value
+                .parse()
+                .map_err(|_| format!("Invalid integer: {}", value))
         } else if let Ok(value) = env::var(var) {
-            value.parse().unwrap_or(0)
+            value
+                .parse()
+                .map_err(|_| format!("Invalid integer: {}", value))
         } else {
-            var.parse().unwrap_or(0)
+            var.parse()
+                .map_err(|_| format!("Invalid integer or undefined variable: {}", var))
         }
     }
 
@@ -625,8 +652,6 @@ impl Interpreter {
                                 >= expanded_args[2].parse::<i32>().unwrap_or(0)),
                             "-z" => Ok(expanded_args[0].is_empty()),
                             "-n" => Ok(!expanded_args[0].is_empty()),
-                            "=" => Ok(expanded_args[0] == expanded_args[2]),
-                            "!=" => Ok(expanded_args[0] != expanded_args[2]),
                             _ => Err(format!("Unsupported test condition: {}", expanded_args[1])),
                         }
                     }
@@ -639,6 +664,7 @@ impl Interpreter {
             _ => Err("Invalid condition node".to_string()),
         }
     }
+
     fn execute_pipeline(&mut self, commands: Vec<ASTNode>) -> Result<Option<i32>, String> {
         let mut previous_stdout = None;
         let mut processes = Vec::new();
@@ -755,7 +781,10 @@ impl Interpreter {
                     if expr.starts_with('(') && expr.ends_with(')') {
                         // Arithmetic expression
                         let arithmetic_expr = &expr[1..expr.len() - 1];
-                        result.push_str(&self.evaluate_arithmetic(arithmetic_expr).to_string());
+                        match self.evaluate_arithmetic(arithmetic_expr) {
+                            Ok(value) => result.push_str(&value.to_string()),
+                            Err(e) => result.push_str(&format!("Error: {}", e)),
+                        }
                     }
                 } else {
                     let var_name: String = chars
@@ -869,6 +898,7 @@ fn run_interactive_mode(interpreter: &mut Interpreter) -> Result<(), String> {
         }
     }
 }
+
 impl Iterator for Lexer {
     type Item = Token;
 
