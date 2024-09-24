@@ -1,0 +1,17 @@
+#!/usr/bin/env bellos
+# File: functions.bellos
+
+# Defining and using functions
+
+function greet() {
+    echo "Hello, $1!"
+}
+
+function add() {
+    echo $(($1 + $2))
+}
+
+# Calling functions
+greet "User"
+result=$(add 3 4)
+echo "3 + 4 = $result"

@@ -1,0 +1,23 @@
+#!/usr/bin/env bellos
+# File: file_operations.bellos
+
+# Demonstrating file operations
+
+# Writing to a file
+echo "This is a test file" > test.txt
+echo "Adding another line" >> test.txt
+
+# Reading from a file
+echo "Contents of test.txt:"
+cat test.txt
+
+# Using a while loop to read file line by line
+echo "Reading file line by line:"
+while read -r line
+do
+    echo "Line: $line"
+done < test.txt
+
+# Cleaning up
+rm test.txt
+
