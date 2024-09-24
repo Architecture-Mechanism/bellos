@@ -1,0 +1,9 @@
+#!/usr/bin/env bellos
+# File: hello_world.bellos
+
+# Simple Hello World script
+echo "Hello, World!"
+
+# Using variables
+name="Bellos"
+echo "Welcome to $name programming!"

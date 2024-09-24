@@ -1,0 +1,23 @@
+#!/usr/bin/env bellos
+# File: string_manipulation.bellos
+
+# Demonstrating string manipulation
+
+string="Hello, Bellos!"
+
+# String length
+echo "Length of string: ${#string}"
+
+# Substring
+echo "First 5 characters: ${string:0:5}"
+
+# String replacement
+new_string=${string/Bellos/World}
+echo "Replaced string: $new_string"
+
+# Converting to uppercase
+echo "Uppercase: ${string^^}"
+
+# Converting to lowercase
+echo "Lowercase: ${string,,}"
+
