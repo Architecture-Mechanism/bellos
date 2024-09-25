@@ -16,17 +16,14 @@
 #[allow(dead_code)]
 pub mod Interpreter {
     mod interpreter;
-    pub use self::interpreter::*;
 }
 
 pub mod Lexer {
     mod lexer;
-    pub use self::lexer::*;
 }
 
 pub mod Parser {
     mod parser;
-    pub use self::parser::*;
 }
 pub mod utilities;
 use std::env;

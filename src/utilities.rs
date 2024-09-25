@@ -13,6 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use super::utilities::*;
 use std::fs::File;
 use std::io::{self, BufRead, Write};
 
@@ -143,13 +144,5 @@ fn run_interactive_mode(interpreter: &mut Interpreter) -> Result<(), String> {
             }
             Err(e) => eprintln!("Parse error: {}", e),
         }
-    }
-}
-
-impl Iterator for Lexer {
-    type Item = Token;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.next_token()
     }
 }
