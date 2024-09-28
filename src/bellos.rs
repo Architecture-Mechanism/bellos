@@ -36,6 +36,9 @@ use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
+use bellande_rust_importer::{from_import, import, Importer};
+use std::path::PathBuf;
+
 fn main() -> Result<(), String> {
     let mut interpreter = Interpreter::new();
 

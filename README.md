@@ -13,6 +13,9 @@
 - redirection support
 
 
+# Usage of Bellande Rust Importer
+- https://github.com/Architecture-Mechanism/bellande_importer
+
 # Bellos executable run scripts
 ```
 ./bellos hello_world.bellos 
@@ -155,7 +158,7 @@ echo "Uppercase: ${string^^}"
 echo "Lowercase: ${string,,}"
 ```
 
-## Website NPM
+## Website Crates
 - https://crates.io/crates/bellos
 
 ### Installation
