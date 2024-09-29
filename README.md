@@ -12,6 +12,8 @@
 - Environment variables
 - redirection support
 
+# Turn Bellos into Executable (Validate and Configurations)
+- https://github.com/Architecture-Mechanism/bellande_rust_executable
 
 # Usage of Bellande Rust Importer
 - https://github.com/Architecture-Mechanism/bellande_importer
