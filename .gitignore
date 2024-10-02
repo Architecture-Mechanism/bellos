@@ -2,5 +2,4 @@ publish.sh
 Cargo.toml
 Cargo.lock
 target
-bellande_rustinstaller.py
 scripts

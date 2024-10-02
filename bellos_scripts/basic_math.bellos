@@ -5,7 +5,7 @@
 
 # Writing to a file
 echo "This is a test file" > test.txt
-echo "Adding another line" >> test.txt
+echo "Adding another line" > test.txt
 
 # Reading from a file
 echo "Contents of test.txt:"
