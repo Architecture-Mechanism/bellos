@@ -12,6 +12,9 @@
 - Environment variables
 - redirection support
 
+# Usage of Bellande Rust Executable Builder
+- https://github.com/Architecture-Mechanism/bellande_rust_executable
+- ```bellande_rust_executable -d dependencies.txt -s src -m bellos.rs -o executable/bellos``` 
 
 # Usage of Bellande Rust Importer
 - https://github.com/Architecture-Mechanism/bellande_importer
