@@ -6,9 +6,8 @@ mod utilities;
 use crate::interpreter::interpreter::Interpreter;
 use crate::lexer::lexer::Lexer;
 use crate::parser::parser::Parser;
-use crate::utilities::Token;
+use crate::utilities::utilities::Token;
 
-use glob::glob;
 use std::env;
 use std::fs::File;
 use std::io::{self, BufRead, Write};
