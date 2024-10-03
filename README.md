@@ -48,7 +48,7 @@
 ```
 Name: bellos
 Version: 0.0.1
-Summary: Bellande Operating System Scripting Programming Language
+Summary: Bellande Operating System Scripting Language
 Home-page: github.com/RonaldsonBellande/bellos
 Author: Ronaldson Bellande
 Author-email: ronaldsonbellande@gmail.com
