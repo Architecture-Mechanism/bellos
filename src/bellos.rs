@@ -21,9 +21,14 @@ mod utilities;
 
 use crate::executor::executor::Executor;
 use std::env;
+use std::process;
 
-fn main() -> Result<(), String> {
-    let mut executor = Executor::new();
+fn main() {
     let args: Vec<String> = env::args().collect();
-    executor.run(args)
+    let mut executor = Executor::new();
+
+    if let Err(e) = executor.run(args) {
+        eprintln!("Application error: {}", e);
+        process::exit(1);
+    }
 }

@@ -1,16 +1,15 @@
 # bellos
 
-## Bellande Operating System Scripting Language written in Rust
-- Variable Assignment
-- Command Execution
-- I/O Redirection
-- Interactive Mode and File Execution
-- Error handling
-- Control structures
-- Functions
-- Built-in commands
-- Environment variables
-- redirection support
+## Bellande Operating System Scripting Language Features
+- **Command Execution**: Run both built-in and external commands.
+- **Variable Assignment and Expansion**: Assign and use variables within scripts or interactive mode.
+- **Control Structures**: Implement logic flow using if-else statements, while loops, and for loops.
+- **Functions**: Define and call custom functions.
+- **File Operations**: Perform basic file I/O operations.
+- **Pipelines**: Chain commands together using pipes.
+- **Input/Output Redirection**: Redirect command input and output to and from files.
+- **Background Jobs**: Run commands in the background.
+- **Environment Variable Handling**: Access and modify environment variables.
 
 # Usage of Bellande Rust Executable Builder
 - https://github.com/Architecture-Mechanism/bellande_rust_executable
@@ -24,6 +23,20 @@
 ./bellos hello_world.bellos 
 ```
 
+## Built-in Commands
+
+### Basic Commands
+- **echo [args...]**: Print arguments to standard output.
+- **cd [directory]**: Change the current working directory.
+- **exit**: Exit the shell.
+
+### File Operations
+- **write <filename> <content>**: Write content to a file.
+- **append <filename> <content>**: Append content to a file.
+- **read <filename>**: Read and display the contents of a file.
+- **read_lines <filename>**: Read and display the contents of a file line by line.
+- **delete <filename>**: Delete a file.
+
 ## BELLOS Usage
 ```
 #!/usr/bin/env bellos
@@ -31,135 +44,6 @@
 
 # Simple Hello World script
 echo "Hello, World!"
-
-# Using variables
-name="Bellos"
-echo "Welcome to $name programming!"
-```
-
-``` 
-#!/usr/bin/env bellos
-# File: basic_math.bellos
-
-# Demonstrating arithmetic operations
-a=5
-b=3
-
-sum=$((a + b))
-difference=$((a - b))
-product=$((a * b))
-quotient=$((a / b))
-
-echo "Sum: $sum"
-echo "Difference: $difference"
-echo "Product: $product"
-echo "Quotient: $quotient"
-```
-
-```
-#!/usr/bin/env bellos
-# File: control_structures.bellos
-
-# Demonstrating if statements and loops
-
-# If statement
-if [ $# -eq 0 ]
-then
-    echo "No arguments provided"
-elif [ $# -eq 1 ]
-then
-    echo "One argument provided: $1"
-else
-    echo "Multiple arguments provided"
-fi
-
-# For loop
-echo "Counting from 1 to 5:"
-for i in 1 2 3 4 5
-do
-    echo $i
-done
-
-# While loop
-echo "Countdown:"
-count=5
-while [ $count -gt 0 ]
-do
-    echo $count
-    count=$((count - 1))
-done
-```
-
-```
-#!/usr/bin/env bellos
-# File: functions.bellos
-
-# Defining and using functions
-
-function greet() {
-    echo "Hello, $1!"
-}
-
-function add() {
-    echo $(($1 + $2))
-}
-
-# Calling functions
-greet "User"
-result=$(add 3 4)
-echo "3 + 4 = $result"
-```
-
-
-```
-#!/usr/bin/env bellos
-# File: file_operations.bellos
-
-# Demonstrating file operations
-
-# Writing to a file
-echo "This is a test file" > test.txt
-echo "Adding another line" >> test.txt
-
-# Reading from a file
-echo "Contents of test.txt:"
-cat test.txt
-
-# Using a while loop to read file line by line
-echo "Reading file line by line:"
-while read -r line
-do
-    echo "Line: $line"
-done < test.txt
-
-# Cleaning up
-rm test.txt
-```
-
-```
-#!/usr/bin/env bellos
-# File: string_manipulation.bellos
-
-# Demonstrating string manipulation
-
-string="Hello, Bellos!"
-
-# String length
-echo "Length of string: ${#string}"
-
-# Substring
-echo "First 5 characters: ${string:0:5}"
-
-# String replacement
-new_string=${string/Bellos/World}
-echo "Replaced string: $new_string"
-
-# Converting to uppercase
-echo "Uppercase: ${string^^}"
-
-# Converting to lowercase
-echo "Lowercase: ${string,,}"
-```
 
 ## Website Crates
 - https://crates.io/crates/bellos

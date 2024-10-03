@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::utilities::utilities::Token;
+use crate::utilities::utilities::{RedirectType, Token};
 
 pub struct Lexer {
     input: Vec<char>,
@@ -27,6 +27,15 @@ impl Lexer {
             position: 0,
         }
     }
+
+    pub fn tokenize(&mut self) -> Vec<Token> {
+        let mut tokens = Vec::new();
+        while let Some(token) = self.next_token() {
+            tokens.push(token);
+        }
+        tokens
+    }
+
     fn next_token(&mut self) -> Option<Token> {
         self.skip_whitespace();
 
@@ -34,65 +43,93 @@ impl Lexer {
             return None;
         }
 
-        match self.input[self.position] {
-            '=' => {
-                self.position += 1;
-                Some(Token::Assignment)
-            }
-            '|' => {
-                self.position += 1;
-                Some(Token::Pipe)
-            }
-            '>' => {
-                self.position += 1;
-                Some(Token::Redirect(">".to_string()))
-            }
-            '<' => {
-                self.position += 1;
-                Some(Token::Redirect("<".to_string()))
-            }
-            '(' => {
-                self.position += 1;
-                Some(Token::LeftParen)
-            }
-            ')' => {
-                self.position += 1;
-                Some(Token::RightParen)
-            }
-            ';' => {
-                self.position += 1;
-                Some(Token::Semicolon)
+        Some(match self.current_char() {
+            ' ' | '\t' => {
+                self.advance();
+                return self.next_token();
             }
             '\n' => {
-                self.position += 1;
-                Some(Token::NewLine)
+                self.advance();
+                Token::NewLine
+            }
+            ';' => {
+                self.advance();
+                Token::Semicolon
+            }
+            '|' => {
+                self.advance();
+                Token::Pipe
             }
             '&' => {
-                self.position += 1;
-                Some(Token::Ampersand)
+                self.advance();
+                Token::Ampersand
             }
-            '"' => Some(self.read_string()),
-            _ => Some(self.read_word()),
-        }
+            '=' => {
+                self.advance();
+                Token::Assignment
+            }
+            '(' => {
+                self.advance();
+                Token::LeftParen
+            }
+            ')' => {
+                self.advance();
+                Token::RightParen
+            }
+            '>' => {
+                self.advance();
+                if self.current_char() == '>' {
+                    self.advance();
+                    Token::Redirect(RedirectType::Append)
+                } else {
+                    Token::Redirect(RedirectType::Out)
+                }
+            }
+            '<' => {
+                self.advance();
+                Token::Redirect(RedirectType::In)
+            }
+            '"' => self.read_string(),
+            '$' => {
+                if self.peek_next() == Some('(') {
+                    Token::Word(self.read_command_substitution())
+                } else {
+                    self.read_word()
+                }
+            }
+            _ => self.read_word(),
+        })
+    }
+
+    fn current_char(&self) -> char {
+        self.input[self.position]
+    }
+
+    fn advance(&mut self) {
+        self.position += 1;
+    }
+
+    fn peek_next(&self) -> Option<char> {
+        self.input.get(self.position + 1).copied()
     }
 
     fn skip_whitespace(&mut self) {
-        while self.position < self.input.len() && self.input[self.position].is_whitespace() {
-            self.position += 1;
+        while self.position < self.input.len() && matches!(self.input[self.position], ' ' | '\t') {
+            self.advance();
         }
     }
 
     fn read_word(&mut self) -> Token {
         let start = self.position;
         while self.position < self.input.len()
-            && !self.input[self.position].is_whitespace()
             && !matches!(
-                self.input[self.position],
-                '=' | '|' | '>' | '<' | '(' | ')' | ';' | '&' | '\n'
+                self.current_char(),
+                ' ' | '\t' | '\n' | ';' | '|' | '&' | '=' | '(' | ')' | '>' | '<' | '"'
             )
         {
-            self.position += 1;
+            self.advance();
         }
+
         let word: String = self.input[start..self.position].iter().collect();
         match word.as_str() {
             "if" => Token::If,
@@ -100,28 +137,53 @@ impl Lexer {
             "else" => Token::Else,
             "fi" => Token::Fi,
             "while" => Token::While,
-            "for" => Token::For,
             "do" => Token::Do,
             "done" => Token::Done,
+            "for" => Token::For,
             "in" => Token::In,
+            "function" => Token::Function,
             _ => Token::Word(word),
         }
     }
 
     fn read_string(&mut self) -> Token {
-        self.position += 1; // Skip opening quote
+        self.advance(); // Skip opening quote
         let start = self.position;
-        while self.position < self.input.len() && self.input[self.position] != '"' {
-            self.position += 1;
+        while self.position < self.input.len() && self.current_char() != '"' {
+            if self.current_char() == '\\' && self.peek_next() == Some('"') {
+                self.advance(); // Skip the backslash
+            }
+            self.advance();
         }
-        let result = Token::Word(self.input[start..self.position].iter().collect());
-        self.position += 1; // Skip closing quote
-        result
+        let string: String = self.input[start..self.position].iter().collect();
+        if self.position < self.input.len() {
+            self.advance(); // Skip closing quote
+        }
+        Token::String(string)
+    }
+
+    fn read_command_substitution(&mut self) -> String {
+        let mut cmd = String::from("$(");
+        self.advance(); // Skip $
+        self.advance(); // Skip (
+        let mut depth = 1;
+
+        while self.position < self.input.len() && depth > 0 {
+            match self.current_char() {
+                '(' => depth += 1,
+                ')' => depth -= 1,
+                _ => {}
+            }
+            cmd.push(self.current_char());
+            self.advance();
+        }
+        cmd
     }
 }
 
 impl Iterator for Lexer {
     type Item = Token;
+
     fn next(&mut self) -> Option<Self::Item> {
         self.next_token()
     }

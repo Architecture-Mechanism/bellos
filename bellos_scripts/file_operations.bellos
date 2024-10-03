@@ -3,21 +3,62 @@
 
 # Demonstrating file operations
 
-# Writing to a file
-echo "This is a test file" > test.txt
-echo "Adding another line" >> test.txt
+# Create a test file
+echo "Creating test file..."
+echo "Hello, World!" > test.txt
 
-# Reading from a file
-echo "Contents of test.txt:"
+# Read the contents of the file
+echo "\nReading test file:"
 cat test.txt
 
-# Using a while loop to read file line by line
-echo "Reading file line by line:"
-while read -r line
-do
-    echo "Line: $line"
-done < test.txt
+# Append to the file
+echo "\nAppending to test file..."
+echo "This is a new line" >> test.txt
 
-# Cleaning up
-rm test.txt
+# Read the updated contents
+echo "\nReading updated test file:"
+cat test.txt
 
+# Write to a new file
+echo "\nWriting to a new file..."
+echo "This is a new file" > new_file.txt
+
+# Read the new file
+echo "\nReading new file:"
+cat new_file.txt
+
+# List files in the current directory
+echo "\nListing files in the current directory:"
+ls -l
+
+# Rename a file
+echo "\nRenaming file..."
+mv new_file.txt renamed_file.txt
+
+# Check if file exists
+echo "\nChecking if files exist:"
+if [ -f "test.txt" ]; then
+    echo "test.txt exists"
+else
+    echo "test.txt does not exist"
+fi
+
+if [ -f "new_file.txt" ]; then
+    echo "new_file.txt exists"
+else
+    echo "new_file.txt does not exist"
+fi
+
+if [ -f "renamed_file.txt" ]; then
+    echo "renamed_file.txt exists"
+else
+    echo "renamed_file.txt does not exist"
+fi
+
+# Delete files
+echo "\nDeleting files..."
+rm test.txt renamed_file.txt
+
+# List files again to confirm deletion
+echo "\nListing files after deletion:"
+ls -l
