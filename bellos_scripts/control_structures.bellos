@@ -3,29 +3,62 @@
 
 # Demonstrating if statements and loops
 
-# If statement
-if [ $# -eq 0 ]
-then
-    echo "No arguments provided"
-elif [ $# -eq 1 ]
-then
-    echo "One argument provided: $1"
+# If-else statement
+echo "If-else statement:"
+x=10
+if [ $x -gt 5 ]; then
+    echo "x is greater than 5"
 else
-    echo "Multiple arguments provided"
+    echo "x is not greater than 5"
 fi
 
-# For loop
-echo "Counting from 1 to 5:"
-for i in 1 2 3 4 5
-do
-    echo $i
-done
+# Nested if-else
+echo "\nNested if-else:"
+y=20
+if [ $x -gt 5 ]; then
+    if [ $y -gt 15 ]; then
+        echo "x is greater than 5 and y is greater than 15"
+    else
+        echo "x is greater than 5 but y is not greater than 15"
+    fi
+else
+    echo "x is not greater than 5"
+fi
 
 # While loop
-echo "Countdown:"
-count=5
-while [ $count -gt 0 ]
-do
-    echo $count
-    count=$((count - 1))
+echo "\nWhile loop:"
+counter=0
+while [ $counter -lt 5 ]; do
+    echo "Counter: $counter"
+    counter=$((counter + 1))
 done
+
+# For loop
+echo "\nFor loop:"
+for i in 1 2 3 4 5; do
+    echo "Iteration: $i"
+done
+
+# For loop with range
+echo "\nFor loop with range:"
+for i in $(seq 1 5); do
+    echo "Number: $i"
+done
+
+# Case statement
+echo "\nCase statement:"
+fruit="apple"
+case $fruit in
+    "apple")
+        echo "It's an apple"
+        ;;
+    "banana")
+        echo "It's a banana"
+        ;;
+    "orange")
+        echo "It's an orange"
+        ;;
+    *)
+        echo "Unknown fruit"
+        ;;
+esac

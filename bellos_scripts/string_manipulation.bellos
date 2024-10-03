@@ -3,21 +3,67 @@
 
 # Demonstrating string manipulation
 
-string="Hello, Bellos!"
+# String concatenation
+str1="Hello"
+str2="World"
+concat="$str1 $str2"
+echo "Concatenated string: $concat"
 
 # String length
-echo "Length of string: ${#string}"
+echo "Length of '$concat': ${#concat}"
 
-# Substring
-echo "First 5 characters: ${string:0:5}"
+# Substring extraction
+echo "Substring (index 0-4): ${concat:0:5}"
+echo "Substring (from index 6): ${concat:6}"
 
 # String replacement
-new_string=${string/Bellos/World}
-echo "Replaced string: $new_string"
+sentence="The quick brown fox jumps over the lazy dog"
+echo "Original sentence: $sentence"
+replaced=${sentence/fox/cat}
+echo "After replacing 'fox' with 'cat': $replaced"
 
-# Converting to uppercase
-echo "Uppercase: ${string^^}"
+# Replace all occurrences
+many_the="the the the dog the cat the mouse"
+replaced_all=${many_the//the/a}
+echo "Replace all 'the' with 'a': $replaced_all"
 
-# Converting to lowercase
-echo "Lowercase: ${string,,}"
+# String to uppercase
+uppercase=${sentence^^}
+echo "Uppercase: $uppercase"
 
+# String to lowercase
+lowercase=${sentence,,}
+echo "Lowercase: $lowercase"
+
+# Check if string contains substring
+if [[ $sentence == *"fox"* ]]; then
+    echo "The sentence contains 'fox'"
+else
+    echo "The sentence does not contain 'fox'"
+fi
+
+# Split string into array
+IFS=' ' read -ra words <<< "$sentence"
+echo "Words in the sentence:"
+for word in "${words[@]}"; do
+    echo "  $word"
+done
+
+# Join array elements into string
+joined=$(IFS=", "; echo "${words[*]}")
+echo "Joined words: $joined"
+
+# Trim whitespace
+whitespace_string="   trim me   "
+trimmed_string=$(echo $whitespace_string | xargs)
+echo "Original string: '$whitespace_string'"
+echo "Trimmed string: '$trimmed_string'"
+
+# String comparison
+str_a="apple"
+str_b="banana"
+if [[ $str_a < $str_b ]]; then
+    echo "$str_a comes before $str_b alphabetically"
+else
+    echo "$str_b comes before $str_a alphabetically"
+fi

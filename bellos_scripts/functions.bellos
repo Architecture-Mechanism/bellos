@@ -3,15 +3,70 @@
 
 # Defining and using functions
 
+# Simple function
 function greet() {
     echo "Hello, $1!"
 }
 
+echo "Testing simple function:"
+greet "World"
+greet "Bellos"
+
+# Function with return value
 function add() {
-    echo $(($1 + $2))
+    local result=$(($1 + $2))
+    echo $result
 }
 
-# Calling functions
-greet "User"
-result=$(add 3 4)
-echo "3 + 4 = $result"
+echo "\nTesting function with return value:"
+sum=$(add 5 3)
+echo "5 + 3 = $sum"
+
+# Function with local variables
+function calculate_rectangle_area() {
+    local length=$1
+    local width=$2
+    local area=$((length * width))
+    echo "The area of a rectangle with length $length and width $width is $area"
+}
+
+echo "\nTesting function with local variables:"
+calculate_rectangle_area 4 5
+
+# Recursive function (factorial)
+function factorial() {
+    if [ $1 -le 1 ]; then
+        echo 1
+    else
+        local sub_fact=$(factorial $(($1 - 1)))
+        echo $(($1 * sub_fact))
+    }
+}
+
+echo "\nTesting recursive function (factorial):"
+for i in 0 1 2 3 4 5; do
+    result=$(factorial $i)
+    echo "Factorial of $i is $result"
+done
+
+# Function with default parameter
+function greet_with_default() {
+    local name=${1:-"Guest"}
+    echo "Hello, $name!"
+}
+
+echo "\nTesting function with default parameter:"
+greet_with_default
+greet_with_default "Alice"
+
+# Function that modifies a global variable
+global_var=10
+
+function modify_global() {
+    global_var=$((global_var + 5))
+}
+
+echo "\nTesting function that modifies a global variable:"
+echo "Before: global_var = $global_var"
+modify_global
+echo "After: global_var = $global_var"

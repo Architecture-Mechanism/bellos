@@ -13,12 +13,11 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::utilities::utilities::ASTNode;
-
+use crate::utilities::utilities::{ASTNode, RedirectType};
 use glob::glob;
 use std::collections::HashMap;
 use std::env;
-use std::fs::File;
+use std::fs::{File, OpenOptions};
 use std::io::{self, Read, Write};
 use std::os::unix::io::AsRawFd;
 use std::process::{Child, Command, Stdio};
@@ -289,25 +288,36 @@ impl Interpreter {
     fn execute_redirect(
         &mut self,
         node: ASTNode,
-        direction: String,
+        direction: RedirectType,
         target: String,
     ) -> Result<Option<i32>, String> {
         let target = self.expand_variables(&target);
-        match direction.as_str() {
-            ">" => {
+        match direction {
+            RedirectType::Out => {
                 let mut file = File::create(&target).map_err(|e| e.to_string())?;
                 let result = self.capture_output(Box::new(node))?;
                 file.write_all(result.as_bytes())
                     .map_err(|e| e.to_string())?;
                 Ok(Some(0))
             }
-            "<" => {
+            RedirectType::Append => {
+                let mut file = OpenOptions::new()
+                    .write(true)
+                    .append(true)
+                    .create(true)
+                    .open(&target)
+                    .map_err(|e| e.to_string())?;
+                let result = self.capture_output(Box::new(node))?;
+                file.write_all(result.as_bytes())
+                    .map_err(|e| e.to_string())?;
+                Ok(Some(0))
+            }
+            RedirectType::In => {
                 let mut file = File::open(&target).map_err(|e| e.to_string())?;
                 let mut input = String::new();
                 file.read_to_string(&mut input).map_err(|e| e.to_string())?;
                 self.execute_with_input(Box::new(node), input)
             }
-            _ => Err(format!("Unsupported redirection: {}", direction)),
         }
     }
 
