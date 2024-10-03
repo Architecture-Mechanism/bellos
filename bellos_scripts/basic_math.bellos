@@ -3,38 +3,43 @@
 
 # Demonstrating arithmetic operations
 
-echo Basic Math Operations
+# Addition
+result=$((5 + 3))
+echo Addition: 5 + 3 = $result
 
-# Simple echo statements for arithmetic
-echo Addition:
-echo 5 + 3 = 8
+# Subtraction
+result=$((10 - 4))
+echo Subtraction: 10 - 4 = $result
 
-echo Subtraction:
-echo 10 - 4 = 6
+# Multiplication
+result=$((6 * 7))
+echo Multiplication: 6 * 7 = $result
 
-echo Multiplication:
-echo 6 * 7 = 42
+# Division
+result=$((20 / 4))
+echo Division: 20 / 4 = $result
 
-echo Division:
-echo 20 / 4 = 5
+# Modulus
+result=$((17 % 5))
+echo Modulus: 17 % 5 = $result
 
-echo Modulus:
-echo 17 % 5 = 2
+# Compound operation
+result=$(( (10 + 5) * 2 ))
+echo Compound: (10 + 5) * 2 = $result
 
-echo Compound operation:
-echo (10 + 5) * 2 = 30
-
-# Using variables (without arithmetic)
-echo Using variables:
+# Using variables
 a=7
 b=3
-echo a = $a
-echo b = $b
+result=$((a + b))
+echo Variables: $a + $b = $result
 
-# Simple increments and decrements
-echo Increment and Decrement:
-echo count = 0
-echo count after increment: 1
-echo count after decrement: 0
+# Increment
+count=0
+count=$((count + 1))
+echo Increment: count after increment = $count
+
+# Decrement
+count=$((count - 1))
+echo Decrement: count after decrement = $count
 
 echo Basic math operations completed.
