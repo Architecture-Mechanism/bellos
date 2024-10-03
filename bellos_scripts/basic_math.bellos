@@ -1,22 +1,40 @@
 #!/usr/bin/env bellos
+# File: basic_math.bellos
 
-# File: file_operations.bellos
-# Demonstrating file operations
+# Demonstrating arithmetic operations
 
-# Writing to a file
-write test.txt "This is a test file"
-append test.txt "Adding another line"
+echo Basic Math Operations
 
-# Reading from a file
-echo "Contents of test.txt:"
-read test.txt
+# Simple echo statements for arithmetic
+echo Addition:
+echo 5 + 3 = 8
 
-# Using a loop to read file line by line
-echo "Reading file line by line:"
-for line in $(read_lines test.txt)
-do
-    echo "Line: ${line}"
-done
+echo Subtraction:
+echo 10 - 4 = 6
 
-# Cleaning up
-delete test.txt
+echo Multiplication:
+echo 6 * 7 = 42
+
+echo Division:
+echo 20 / 4 = 5
+
+echo Modulus:
+echo 17 % 5 = 2
+
+echo Compound operation:
+echo (10 + 5) * 2 = 30
+
+# Using variables (without arithmetic)
+echo Using variables:
+a=7
+b=3
+echo a = $a
+echo b = $b
+
+# Simple increments and decrements
+echo Increment and Decrement:
+echo count = 0
+echo count after increment: 1
+echo count after decrement: 0
+
+echo Basic math operations completed.

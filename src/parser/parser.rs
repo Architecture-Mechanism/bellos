@@ -13,11 +13,13 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::utilities::utilities::{ASTNode, Token};
+use crate::utilities::utilities::{ASTNode, RedirectType, Token};
 
 pub struct Parser {
     tokens: Vec<Token>,
     position: usize,
+    recursion_depth: usize,
+    max_recursion_depth: usize,
 }
 
 impl Parser {
@@ -25,7 +27,22 @@ impl Parser {
         Parser {
             tokens,
             position: 0,
+            recursion_depth: 0,
+            max_recursion_depth: 1000,
         }
+    }
+
+    fn increment_recursion(&mut self) -> Result<(), String> {
+        self.recursion_depth += 1;
+        if self.recursion_depth > self.max_recursion_depth {
+            Err("Maximum recursion depth exceeded".to_string())
+        } else {
+            Ok(())
+        }
+    }
+
+    fn decrement_recursion(&mut self) {
+        self.recursion_depth -= 1;
     }
 
     pub fn parse(&mut self) -> Result<Vec<ASTNode>, String> {
@@ -39,18 +56,25 @@ impl Parser {
     }
 
     fn parse_statement(&mut self) -> Result<ASTNode, String> {
-        match &self.tokens[self.position] {
-            Token::Word(_) => self.parse_command_or_assignment(),
-            Token::LeftParen => self.parse_block(),
-            Token::If => self.parse_if(),
-            Token::While => self.parse_while(),
-            Token::For => self.parse_for(),
-            Token::Function => self.parse_function(),
-            _ => Err(format!(
-                "Unexpected token: {:?}",
-                self.tokens[self.position]
-            )),
-        }
+        self.increment_recursion()?;
+        let result = if self.position >= self.tokens.len() {
+            Err("Unexpected end of input".to_string())
+        } else {
+            match &self.tokens[self.position] {
+                Token::Word(_) => self.parse_command_or_assignment(),
+                Token::LeftParen => self.parse_block(),
+                Token::If => self.parse_if(),
+                Token::While => self.parse_while(),
+                Token::For => self.parse_for(),
+                Token::Function => self.parse_function(),
+                _ => Err(format!(
+                    "Unexpected token: {:?}",
+                    self.tokens[self.position]
+                )),
+            }
+        };
+        self.decrement_recursion();
+        result
     }
 
     fn parse_command_or_assignment(&mut self) -> Result<ASTNode, String> {
@@ -67,9 +91,14 @@ impl Parser {
 
         if self.position < self.tokens.len() && self.tokens[self.position] == Token::Assignment {
             self.position += 1;
-            let value = match &self.tokens[self.position] {
-                Token::Word(w) => w.clone(),
-                _ => String::new(), // Allow empty assignments
+            let value = if self.position < self.tokens.len() {
+                match &self.tokens[self.position] {
+                    Token::Word(w) => w.clone(),
+                    Token::String(s) => s.clone(),
+                    _ => String::new(), // Allow empty assignments
+                }
+            } else {
+                String::new()
             };
             if self.position < self.tokens.len() {
                 self.position += 1;
@@ -88,14 +117,15 @@ impl Parser {
                         | Token::Assignment
                 )
             {
-                if let Token::Word(w) = &self.tokens[self.position] {
-                    args.push(w.clone());
-                    self.position += 1;
-                } else {
-                    break;
+                match &self.tokens[self.position] {
+                    Token::Word(w) => args.push(w.clone()),
+                    Token::String(s) => args.push(s.clone()),
+                    _ => break,
                 }
+                self.position += 1;
             }
-            Ok(ASTNode::Command { name, args })
+            let command = ASTNode::Command { name, args };
+            self.parse_pipeline_or_redirect(command)
         }
     }
 
@@ -113,14 +143,19 @@ impl Parser {
             }
             Token::Redirect(direction) => {
                 self.position += 1;
-                let target = match &self.tokens[self.position] {
-                    Token::Word(w) => w.clone(),
-                    _ => {
-                        return Err(format!(
-                            "Expected word after redirect, found {:?}",
-                            self.tokens[self.position]
-                        ))
+                let target = if self.position < self.tokens.len() {
+                    match &self.tokens[self.position] {
+                        Token::Word(w) => w.clone(),
+                        Token::String(s) => s.clone(),
+                        _ => {
+                            return Err(format!(
+                                "Expected word after redirect, found {:?}",
+                                self.tokens[self.position]
+                            ))
+                        }
                     }
+                } else {
+                    return Err("Unexpected end of input after redirect".to_string());
                 };
                 self.position += 1;
                 let redirect = ASTNode::Redirect {
@@ -136,6 +171,18 @@ impl Parser {
             }
             _ => Ok(left),
         }
+    }
+
+    fn parse_block(&mut self) -> Result<ASTNode, String> {
+        self.position += 1; // Consume left paren
+        let mut statements = Vec::new();
+        while self.position < self.tokens.len() && self.tokens[self.position] != Token::RightParen {
+            statements.push(self.parse_statement()?);
+            self.consume_if(Token::Semicolon);
+            self.consume_if(Token::NewLine);
+        }
+        self.expect_token(Token::RightParen)?;
+        Ok(ASTNode::Block(statements))
     }
 
     fn parse_if(&mut self) -> Result<ASTNode, String> {
@@ -175,57 +222,17 @@ impl Parser {
         self.expect_token(Token::In)?;
         let mut list = Vec::new();
         while self.position < self.tokens.len() && self.tokens[self.position] != Token::Do {
-            if let Token::Word(w) = &self.tokens[self.position] {
-                list.push(w.clone());
-                self.position += 1;
-            } else {
-                break;
+            match &self.tokens[self.position] {
+                Token::Word(w) => list.push(w.clone()),
+                Token::String(s) => list.push(s.clone()),
+                _ => break,
             }
+            self.position += 1;
         }
         self.expect_token(Token::Do)?;
         let block = Box::new(self.parse_block()?);
         self.expect_token(Token::Done)?;
         Ok(ASTNode::For { var, list, block })
-    }
-
-    fn parse_block(&mut self) -> Result<ASTNode, String> {
-        let mut statements = Vec::new();
-        while self.position < self.tokens.len()
-            && !matches!(
-                self.tokens[self.position],
-                Token::Fi | Token::Done | Token::Else
-            )
-        {
-            statements.push(self.parse_statement()?);
-            self.consume_if(Token::Semicolon);
-            self.consume_if(Token::NewLine);
-        }
-        Ok(ASTNode::Block(statements))
-    }
-
-    fn parse_command(&mut self) -> Result<ASTNode, String> {
-        let mut args = Vec::new();
-        while self.position < self.tokens.len()
-            && !matches!(
-                self.tokens[self.position],
-                Token::Then | Token::Do | Token::Done | Token::Fi | Token::Else
-            )
-        {
-            if let Token::Word(w) = &self.tokens[self.position] {
-                args.push(w.clone());
-                self.position += 1;
-            } else {
-                break;
-            }
-        }
-        if args.is_empty() {
-            Err("Expected command".to_string())
-        } else {
-            Ok(ASTNode::Command {
-                name: args[0].clone(),
-                args: args[1..].to_vec(),
-            })
-        }
     }
 
     fn parse_function(&mut self) -> Result<ASTNode, String> {
@@ -244,6 +251,31 @@ impl Parser {
         Ok(ASTNode::Function { name, body })
     }
 
+    fn parse_command(&mut self) -> Result<ASTNode, String> {
+        let mut args = Vec::new();
+        while self.position < self.tokens.len()
+            && !matches!(
+                self.tokens[self.position],
+                Token::Then | Token::Do | Token::Done | Token::Fi | Token::Else
+            )
+        {
+            match &self.tokens[self.position] {
+                Token::Word(w) => args.push(w.clone()),
+                Token::String(s) => args.push(s.clone()),
+                _ => break,
+            }
+            self.position += 1;
+        }
+        if args.is_empty() {
+            Err("Expected command".to_string())
+        } else {
+            Ok(ASTNode::Command {
+                name: args[0].clone(),
+                args: args[1..].to_vec(),
+            })
+        }
+    }
+
     fn expect_token(&mut self, expected: Token) -> Result<(), String> {
         if self.position < self.tokens.len() && self.tokens[self.position] == expected {
             self.position += 1;
@@ -252,7 +284,7 @@ impl Parser {
             Err(format!(
                 "Expected {:?}, found {:?}",
                 expected,
-                self.tokens.get(self.position)
+                self.tokens.get(self.position).unwrap_or(&Token::NewLine)
             ))
         }
     }

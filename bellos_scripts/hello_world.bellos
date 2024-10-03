@@ -1,9 +1,50 @@
 #!/usr/bin/env bellos
 # File: hello_world.bellos
 
-# Simple Hello World script
-echo "Hello, World!"
+# Demonstrating hello world
 
-# Using variables
-name="Bellos"
-echo "Welcome to $name programming!"
+# Simple echo
+echo Hello, World!
+
+# Variable assignment and usage
+name=Bellos
+echo Hello, $name!
+
+# Simple echoes (replacing control structures)
+echo Checking the name:
+echo The name is indeed Bellos
+
+echo Counting from 1 to 5:
+echo Number: 1
+echo Number: 2
+echo Number: 3
+echo Number: 4
+echo Number: 5
+
+echo Demonstrating simple counting:
+echo Count is: 0
+echo Count is: 1
+echo Count is: 2
+
+# File operations
+echo Writing to a file...
+write test.txt "This is a test file."
+echo Reading from the file:
+read test.txt
+
+echo Appending to the file...
+append test.txt "This is an appended line."
+echo Reading the updated file:
+read test.txt
+
+echo Deleting the file...
+delete test.txt
+
+# Simple echo
+echo The current date is:
+echo Current date placeholder
+
+echo Demonstrating echo:
+echo hello world
+
+echo Script execution completed.
