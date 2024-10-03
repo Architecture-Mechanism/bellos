@@ -38,12 +38,6 @@
 - **delete <filename>**: Delete a file.
 
 ## BELLOS Usage
-```
-#!/usr/bin/env bellos
-# File: hello_world.bellos
-
-# Simple Hello World script
-echo "Hello, World!"
 
 ## Website Crates
 - https://crates.io/crates/bellos
