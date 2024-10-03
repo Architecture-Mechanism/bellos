@@ -13,22 +13,19 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-mod executor;
+mod executor_processes;
 mod interpreter;
 mod lexer;
 mod parser;
 mod utilities;
 
-use crate::executor::executor::Executor;
-use std::env;
-use std::process;
+use crate::executor_processes::executor::Executor;
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
+    let args: Vec<String> = std::env::args().collect();
     let mut executor = Executor::new();
-
     if let Err(e) = executor.run(args) {
         eprintln!("Application error: {}", e);
-        process::exit(1);
+        std::process::exit(1);
     }
 }

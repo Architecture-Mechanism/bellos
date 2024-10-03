@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::utilities::utilities::{ASTNode, RedirectType, Token};
+use crate::utilities::utilities::{ASTNode, Token};
 
 pub struct Parser {
     tokens: Vec<Token>,
@@ -91,18 +91,7 @@ impl Parser {
 
         if self.position < self.tokens.len() && self.tokens[self.position] == Token::Assignment {
             self.position += 1;
-            let value = if self.position < self.tokens.len() {
-                match &self.tokens[self.position] {
-                    Token::Word(w) => w.clone(),
-                    Token::String(s) => s.clone(),
-                    _ => String::new(), // Allow empty assignments
-                }
-            } else {
-                String::new()
-            };
-            if self.position < self.tokens.len() {
-                self.position += 1;
-            }
+            let value = self.parse_expression()?;
             Ok(ASTNode::Assignment { name, value })
         } else {
             let mut args = Vec::new();
@@ -127,6 +116,41 @@ impl Parser {
             let command = ASTNode::Command { name, args };
             self.parse_pipeline_or_redirect(command)
         }
+    }
+
+    fn parse_expression(&mut self) -> Result<String, String> {
+        let mut expression = String::new();
+        let mut paren_count = 0;
+
+        while self.position < self.tokens.len() {
+            match &self.tokens[self.position] {
+                Token::Word(w) => expression.push_str(w),
+                Token::String(s) => {
+                    expression.push('"');
+                    expression.push_str(s);
+                    expression.push('"');
+                }
+                Token::LeftParen => {
+                    expression.push('(');
+                    paren_count += 1;
+                }
+                Token::RightParen if paren_count > 0 => {
+                    expression.push(')');
+                    paren_count -= 1;
+                }
+                Token::Semicolon | Token::NewLine if paren_count == 0 => break,
+                Token::Assignment => expression.push('='),
+                _ if paren_count == 0 => break,
+                _ => expression.push_str(&format!("{:?}", self.tokens[self.position])),
+            }
+            self.position += 1;
+        }
+
+        if paren_count != 0 {
+            return Err("Mismatched parentheses in expression".to_string());
+        }
+
+        Ok(expression)
     }
 
     fn parse_pipeline_or_redirect(&mut self, left: ASTNode) -> Result<ASTNode, String> {
