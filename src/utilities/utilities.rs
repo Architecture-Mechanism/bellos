@@ -16,13 +16,15 @@
 #[derive(Debug, Clone, PartialEq)]
 pub enum Token {
     Word(String),
+    String(String),
     Assignment,
     Pipe,
-    Redirect(String),
-    LeftParen,
-    RightParen,
+    Redirect(RedirectType),
     Semicolon,
     NewLine,
+    Ampersand,
+    LeftParen,
+    RightParen,
     If,
     Then,
     Else,
@@ -33,7 +35,23 @@ pub enum Token {
     For,
     In,
     Function,
-    Ampersand,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum RedirectType {
+    Out,
+    Append,
+    In,
+}
+
+impl RedirectType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            RedirectType::Out => ">",
+            RedirectType::Append => ">>",
+            RedirectType::In => "<",
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -49,7 +67,7 @@ pub enum ASTNode {
     Pipeline(Vec<ASTNode>),
     Redirect {
         node: Box<ASTNode>,
-        direction: String,
+        direction: RedirectType,
         target: String,
     },
     Block(Vec<ASTNode>),
@@ -72,4 +90,13 @@ pub enum ASTNode {
         body: Box<ASTNode>,
     },
     Background(Box<ASTNode>),
+}
+
+impl ASTNode {
+    pub fn is_empty_command(&self) -> bool {
+        match self {
+            ASTNode::Command { name, args } => name.is_empty() && args.is_empty(),
+            _ => false,
+        }
+    }
 }
