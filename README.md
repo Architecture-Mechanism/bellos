@@ -11,6 +11,9 @@
 - **Background Jobs**: Run commands in the background.
 - **Environment Variable Handling**: Access and modify environment variables.
 
+# Bellos Installer
+- https://github.com/Architecture-Mechanism/bellos_installer
+
 # Usage of Bellande Rust Executable Builder
 - https://github.com/Architecture-Mechanism/bellande_rust_executable
 - ```bellande_rust_executable -d dependencies.txt -s src -m bellos.rs -o executable/bellos``` 

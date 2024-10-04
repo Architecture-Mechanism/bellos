@@ -14,10 +14,13 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::interpreter::interpreter::Interpreter;
+use crate::lexer::lexer::Lexer;
+use crate::parser::parser::Parser;
 use crate::utilities::utilities::{ASTNode, RedirectType};
 use glob::glob;
 use std::fs::{File, OpenOptions};
 use std::io::{self, BufReader, BufWriter, Cursor, Read, Write};
+use std::path::Path;
 use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -83,6 +86,35 @@ impl Processes {
                 if let Some(func) = interpreter.functions.get(&expanded_name) {
                     return interpreter.interpret_node(Box::new(func.clone()));
                 }
+
+                // Check if the command is a .bellos script
+                if expanded_name.ends_with(".bellos") {
+                    let path = Path::new(&expanded_name);
+                    if path.exists() {
+                        // Read the script file
+                        let mut file = File::open(path)
+                            .map_err(|e| format!("Failed to open script file: {}", e))?;
+                        let mut content = String::new();
+                        file.read_to_string(&mut content)
+                            .map_err(|e| format!("Failed to read script file: {}", e))?;
+
+                        // Parse and execute the script content
+                        let mut lexer = Lexer::new(content);
+                        let tokens = lexer.tokenize();
+                        let mut parser = Parser::new(tokens);
+                        let ast = parser
+                            .parse()
+                            .map_err(|e| format!("Failed to parse script: {}", e))?;
+
+                        for node in ast {
+                            interpreter.interpret_node(Box::new(node))?;
+                        }
+
+                        return Ok(Some(0));
+                    }
+                }
+
+                // If it's not a .bellos script, try to execute it as a system command
                 match Command::new(&expanded_name).args(&expanded_args).spawn() {
                     Ok(mut child) => {
                         let status = child.wait().map_err(|e| e.to_string())?;
@@ -211,26 +243,13 @@ impl Processes {
     pub fn execute_background(&self, node: ASTNode) -> Result<Option<i32>, String> {
         let bg_jobs = Arc::clone(&self.background_jobs);
 
-        // Create a new background process
-        let child = Arc::new(Mutex::new(
-            Command::new(std::env::current_exe().expect("Failed to get current executable path"))
-                .arg("--execute-bellos-script")
-                .stdin(Stdio::piped())
-                .stdout(Stdio::null())
-                .stderr(Stdio::null())
-                .spawn()
-                .map_err(|e| format!("Failed to spawn background process: {}", e))?,
-        ));
-
-        // Add the new job to the list
-        bg_jobs.lock().unwrap().push(Arc::clone(&child));
-
         thread::spawn(move || {
             let mut interpreter = Interpreter::new();
             if let Err(e) = interpreter.interpret_node(Box::new(node)) {
                 eprintln!("Background job error: {}", e);
             }
 
+            // Remove completed jobs from bg_jobs
             let mut jobs = bg_jobs.lock().unwrap();
             jobs.retain(|job| {
                 let mut child = job.lock().unwrap();
@@ -250,6 +269,13 @@ impl Processes {
                 }
             });
         });
+
+        // Add a placeholder Child process to the background_jobs list
+        let placeholder =
+            Arc::new(Mutex::new(Command::new("sleep").arg("1").spawn().map_err(
+                |e| format!("Failed to create placeholder process: {}", e),
+            )?));
+        self.background_jobs.lock().unwrap().push(placeholder);
 
         Ok(None)
     }
