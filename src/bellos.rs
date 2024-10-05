@@ -23,6 +23,8 @@ use crate::executor_processes::executor::Executor;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
+    println!("Arguments: {:?}", args);
+
     let mut executor = Executor::new();
     if let Err(e) = executor.run(args) {
         eprintln!("Application error: {}", e);

@@ -14,13 +14,10 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::interpreter::interpreter::Interpreter;
-use crate::lexer::lexer::Lexer;
-use crate::parser::parser::Parser;
 use crate::utilities::utilities::{ASTNode, RedirectType};
 use glob::glob;
 use std::fs::{File, OpenOptions};
 use std::io::{self, BufReader, BufWriter, Cursor, Read, Write};
-use std::path::Path;
 use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -37,7 +34,7 @@ impl Processes {
     }
 
     pub fn execute_command(
-        &self,
+        &mut self,
         interpreter: &mut Interpreter,
         name: String,
         args: Vec<String>,
@@ -48,9 +45,30 @@ impl Processes {
             .map(|arg| interpreter.expand_variables(arg))
             .collect();
 
+        // Handle arithmetic assignments
+        if expanded_name.contains('=') {
+            let parts: Vec<&str> = expanded_name.splitn(2, '=').collect();
+            if parts.len() == 2 {
+                let var_name = parts[0].trim().to_string();
+                let var_value = parts[1].trim().to_string();
+
+                if var_value.starts_with("$((") && var_value.ends_with("))") {
+                    // Arithmetic expression
+                    let result = interpreter.evaluate_arithmetic(&var_value)?;
+                    interpreter.variables.insert(var_name, result.to_string());
+                } else {
+                    // Regular variable assignment
+                    let expanded_value = interpreter.expand_variables(&var_value);
+                    interpreter.variables.insert(var_name, expanded_value);
+                }
+                return Ok(Some(0));
+            }
+        }
+
         match expanded_name.as_str() {
             "echo" => {
-                println!("{}", expanded_args.join(" "));
+                let output = expanded_args.join(" ");
+                println!("{}", output);
                 Ok(Some(0))
             }
             "cd" => {
@@ -82,39 +100,60 @@ impl Processes {
                 }
                 Ok(Some(0))
             }
+            "write" => {
+                if expanded_args.len() != 2 {
+                    return Err("Usage: write <filename> <content>".to_string());
+                }
+                let filename = &expanded_args[0];
+                let content = &expanded_args[1];
+                let mut file = File::create(filename)
+                    .map_err(|e| format!("Failed to create file {}: {}", filename, e))?;
+                file.write_all(content.as_bytes())
+                    .map_err(|e| format!("Failed to write to file {}: {}", filename, e))?;
+                Ok(Some(0))
+            }
+            "read" => {
+                if expanded_args.len() != 1 {
+                    return Err("Usage: read <filename>".to_string());
+                }
+                let filename = &expanded_args[0];
+                let mut content = String::new();
+                File::open(filename)
+                    .map_err(|e| format!("Failed to open file {}: {}", filename, e))?
+                    .read_to_string(&mut content)
+                    .map_err(|e| format!("Failed to read file {}: {}", filename, e))?;
+                println!("{}", content);
+                Ok(Some(0))
+            }
+            "append" => {
+                if expanded_args.len() != 2 {
+                    return Err("Usage: append <filename> <content>".to_string());
+                }
+                let filename = &expanded_args[0];
+                let content = &expanded_args[1];
+                let mut file = OpenOptions::new()
+                    .append(true)
+                    .open(filename)
+                    .map_err(|e| format!("Failed to open file {}: {}", filename, e))?;
+                file.write_all(content.as_bytes())
+                    .map_err(|e| format!("Failed to append to file {}: {}", filename, e))?;
+                Ok(Some(0))
+            }
+            "delete" => {
+                if expanded_args.len() != 1 {
+                    return Err("Usage: delete <filename>".to_string());
+                }
+                let filename = &expanded_args[0];
+                std::fs::remove_file(filename)
+                    .map_err(|e| format!("Failed to delete file {}: {}", filename, e))?;
+                Ok(Some(0))
+            }
             _ => {
                 if let Some(func) = interpreter.functions.get(&expanded_name) {
                     return interpreter.interpret_node(Box::new(func.clone()));
                 }
 
-                // Check if the command is a .bellos script
-                if expanded_name.ends_with(".bellos") {
-                    let path = Path::new(&expanded_name);
-                    if path.exists() {
-                        // Read the script file
-                        let mut file = File::open(path)
-                            .map_err(|e| format!("Failed to open script file: {}", e))?;
-                        let mut content = String::new();
-                        file.read_to_string(&mut content)
-                            .map_err(|e| format!("Failed to read script file: {}", e))?;
-
-                        // Parse and execute the script content
-                        let mut lexer = Lexer::new(content);
-                        let tokens = lexer.tokenize();
-                        let mut parser = Parser::new(tokens);
-                        let ast = parser
-                            .parse()
-                            .map_err(|e| format!("Failed to parse script: {}", e))?;
-
-                        for node in ast {
-                            interpreter.interpret_node(Box::new(node))?;
-                        }
-
-                        return Ok(Some(0));
-                    }
-                }
-
-                // If it's not a .bellos script, try to execute it as a system command
+                // If it's not a built-in command or variable assignment, try to execute as external command
                 match Command::new(&expanded_name).args(&expanded_args).spawn() {
                     Ok(mut child) => {
                         let status = child.wait().map_err(|e| e.to_string())?;

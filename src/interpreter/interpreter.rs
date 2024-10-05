@@ -79,6 +79,9 @@ impl Interpreter {
                 self.functions.insert(name, *body);
                 Ok(None)
             }
+            ASTNode::Command { name: _, args: _ } => {
+                Err("Commands should be handled by Processes".to_string())
+            }
             _ => Err("Node type not handled by Interpreter".to_string()),
         }
     }
@@ -123,15 +126,27 @@ impl Interpreter {
         while let Some(c) = chars.next() {
             if c == '$' {
                 if chars.peek() == Some(&'(') {
-                    chars.next(); // consume '('
-                    let expr: String = chars.by_ref().take_while(|&c| c != ')').collect();
-                    if expr.starts_with('(') && expr.ends_with(')') {
-                        // Arithmetic expression
-                        let arithmetic_expr = &expr[1..expr.len() - 1];
-                        match self.evaluate_arithmetic(arithmetic_expr) {
+                    let mut depth = 0;
+                    let mut expr = String::new();
+                    for c in chars.by_ref() {
+                        expr.push(c);
+                        if c == '(' {
+                            depth += 1;
+                        } else if c == ')' {
+                            depth -= 1;
+                            if depth == 0 {
+                                break;
+                            }
+                        }
+                    }
+                    if expr.starts_with("((") && expr.ends_with("))") {
+                        match self.evaluate_arithmetic(&expr) {
                             Ok(value) => result.push_str(&value.to_string()),
                             Err(e) => result.push_str(&format!("Error: {}", e)),
                         }
+                    } else {
+                        result.push('$');
+                        result.push_str(&expr);
                     }
                 } else {
                     let var_name: String = chars
@@ -142,6 +157,9 @@ impl Interpreter {
                         result.push_str(value);
                     } else if let Ok(value) = env::var(&var_name) {
                         result.push_str(&value);
+                    } else {
+                        result.push('$');
+                        result.push_str(&var_name);
                     }
                 }
             } else {
@@ -151,34 +169,81 @@ impl Interpreter {
         result
     }
 
-    fn evaluate_arithmetic(&self, expr: &str) -> Result<i32, String> {
-        let tokens: Vec<&str> = expr.split_whitespace().collect();
-        if tokens.len() != 3 {
-            return Err("Invalid arithmetic expression".to_string());
+    pub fn evaluate_arithmetic(&self, expr: &str) -> Result<i32, String> {
+        let expr = expr.trim();
+        let inner_expr = if expr.starts_with("$((") && expr.ends_with("))") {
+            &expr[3..expr.len() - 2]
+        } else if expr.starts_with("((") && expr.ends_with("))") {
+            &expr[2..expr.len() - 2]
+        } else {
+            expr
+        };
+
+        // Handle parentheses
+        if inner_expr.contains('(') {
+            let mut depth = 0;
+            let mut start = 0;
+            for (i, c) in inner_expr.chars().enumerate() {
+                match c {
+                    '(' => {
+                        if depth == 0 {
+                            start = i + 1;
+                        }
+                        depth += 1;
+                    }
+                    ')' => {
+                        depth -= 1;
+                        if depth == 0 {
+                            let sub_result = self.evaluate_arithmetic(&inner_expr[start..i])?;
+                            let new_expr = format!(
+                                "{} {} {}",
+                                &inner_expr[..start - 1],
+                                sub_result,
+                                &inner_expr[i + 1..]
+                            );
+                            return self.evaluate_arithmetic(&new_expr);
+                        }
+                    }
+                    _ => {}
+                }
+            }
         }
 
-        let a = self.get_var_value(tokens[0])?;
-        let b = self.get_var_value(tokens[2])?;
+        // Split the expression into tokens
+        let tokens: Vec<&str> = inner_expr.split_whitespace().collect();
 
-        match tokens[1] {
-            "+" => Ok(a + b),
-            "-" => Ok(a - b),
-            "*" => Ok(a * b),
-            "/" => {
-                if b != 0 {
-                    Ok(a / b)
-                } else {
-                    Err("Division by zero".to_string())
+        // Handle single number or variable
+        if tokens.len() == 1 {
+            return self.get_var_value(tokens[0]);
+        }
+
+        // Handle binary operations
+        if tokens.len() == 3 {
+            let a = self.get_var_value(tokens[0])?;
+            let b = self.get_var_value(tokens[2])?;
+
+            match tokens[1] {
+                "+" => Ok(a + b),
+                "-" => Ok(a - b),
+                "*" => Ok(a * b),
+                "/" => {
+                    if b != 0 {
+                        Ok(a / b)
+                    } else {
+                        Err("Division by zero".to_string())
+                    }
                 }
-            }
-            "%" => {
-                if b != 0 {
-                    Ok(a % b)
-                } else {
-                    Err("Modulo by zero".to_string())
+                "%" => {
+                    if b != 0 {
+                        Ok(a % b)
+                    } else {
+                        Err("Modulo by zero".to_string())
+                    }
                 }
+                _ => Err(format!("Unsupported operation: {}", tokens[1])),
             }
-            _ => Err(format!("Unsupported operation: {}", tokens[1])),
+        } else {
+            Err("Invalid arithmetic expression".to_string())
         }
     }
 
@@ -187,13 +252,10 @@ impl Interpreter {
             value
                 .parse()
                 .map_err(|_| format!("Invalid integer: {}", value))
-        } else if let Ok(value) = env::var(var) {
-            value
-                .parse()
-                .map_err(|_| format!("Invalid integer: {}", value))
+        } else if let Ok(value) = var.parse() {
+            Ok(value)
         } else {
-            var.parse()
-                .map_err(|_| format!("Invalid integer or undefined variable: {}", var))
+            Err(format!("Undefined variable or invalid integer: {}", var))
         }
     }
 }

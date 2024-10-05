@@ -20,6 +20,7 @@ use crate::parser::parser::Parser;
 use crate::utilities::utilities::ASTNode;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, Write};
+use std::path::Path;
 use std::sync::Arc;
 
 pub struct Executor {
@@ -46,12 +47,53 @@ impl Executor {
     }
 
     fn execute_script(&mut self, filename: &str) -> Result<(), String> {
+        println!("Executing script: {}", filename);
+
+        if !filename.ends_with(".bellos") {
+            return Err(format!("Not a .bellos script: {}", filename));
+        }
+
+        let path = Path::new(filename);
+        if !path.exists() {
+            return Err(format!("Script file does not exist: {}", filename));
+        }
+
         let file =
-            File::open(filename).map_err(|e| format!("Error opening file {}: {}", filename, e))?;
+            File::open(path).map_err(|e| format!("Error opening file {}: {}", filename, e))?;
         let reader = BufReader::new(file);
-        for line in reader.lines() {
-            let line = line.map_err(|e| format!("Error reading line: {}", e))?;
-            self.process_content(&line)?;
+
+        for (index, line) in reader.lines().enumerate() {
+            let line = line.map_err(|e| format!("Error reading line {}: {}", index + 1, e))?;
+            let trimmed_line = line.trim();
+            if trimmed_line.is_empty() || trimmed_line.starts_with('#') {
+                continue; // Skip empty lines and comments
+            }
+
+            // Handle variable assignments and arithmetic operations
+            if trimmed_line.contains('=') {
+                let parts: Vec<&str> = trimmed_line.splitn(2, '=').collect();
+                if parts.len() == 2 {
+                    let var_name = parts[0].trim().to_string();
+                    let var_value = parts[1].trim().to_string();
+
+                    if var_value.starts_with("$((") && var_value.ends_with("))") {
+                        // Arithmetic expression
+                        let result = self.interpreter.evaluate_arithmetic(&var_value)?;
+                        self.interpreter
+                            .variables
+                            .insert(var_name, result.to_string());
+                    } else {
+                        // Regular variable assignment
+                        let expanded_value = self.interpreter.expand_variables(&var_value);
+                        self.interpreter.variables.insert(var_name, expanded_value);
+                    }
+                    continue;
+                }
+            }
+
+            if let Err(e) = self.process_content(trimmed_line) {
+                return Err(format!("Error on line {}: {}", index + 1, e));
+            }
         }
         Ok(())
     }
@@ -74,6 +116,28 @@ impl Executor {
     }
 
     fn process_content(&mut self, content: &str) -> Result<(), String> {
+        // Handle variable assignments and arithmetic operations
+        if content.contains('=') {
+            let parts: Vec<&str> = content.splitn(2, '=').collect();
+            if parts.len() == 2 {
+                let var_name = parts[0].trim().to_string();
+                let var_value = parts[1].trim().to_string();
+
+                if var_value.starts_with("$((") && var_value.ends_with("))") {
+                    // Arithmetic expression
+                    let result = self.interpreter.evaluate_arithmetic(&var_value)?;
+                    self.interpreter
+                        .variables
+                        .insert(var_name, result.to_string());
+                } else {
+                    // Regular variable assignment
+                    let expanded_value = self.interpreter.expand_variables(&var_value);
+                    self.interpreter.variables.insert(var_name, expanded_value);
+                }
+                return Ok(());
+            }
+        }
+
         let ast_nodes = self.parse_content(content)?;
         self.execute(ast_nodes)
     }
@@ -94,10 +158,9 @@ impl Executor {
 
     fn execute_node(&mut self, node: ASTNode) -> Result<Option<i32>, String> {
         match node {
-            ASTNode::Command { name, args } => {
-                self.processes
-                    .execute_command(&mut self.interpreter, name, args)
-            }
+            ASTNode::Command { name, args } => Arc::get_mut(&mut self.processes)
+                .unwrap()
+                .execute_command(&mut self.interpreter, name, args),
             ASTNode::Pipeline(commands) => {
                 self.processes.execute_pipeline(&self.interpreter, commands)
             }
@@ -105,9 +168,12 @@ impl Executor {
                 node,
                 direction,
                 target,
-            } => self
-                .processes
-                .execute_redirect(&mut self.interpreter, *node, direction, target),
+            } => Arc::get_mut(&mut self.processes).unwrap().execute_redirect(
+                &mut self.interpreter,
+                *node,
+                direction,
+                target,
+            ),
             ASTNode::Background(node) => self.processes.execute_background(*node),
             _ => self.interpreter.interpret_node(Box::new(node)),
         }
