@@ -1,0 +1,17 @@
+[package]
+name = "bellos"
+version = "0.0.4"
+edition = "2021"
+authors = ["Ronaldson Bellande ronaldsonbellande@gmail.com"]
+description = "Bellande Operating System Scripting Programming Language written in Rust"
+license = "GPL-3.0-or-later"
+
+[lib]
+path = "src/bellos.rs"
+
+
+[dependencies]
+glob = "0.3.0"
+tempfile = "3.2"
+shellexpand = "3.1.0"
+meval = "0.2"
