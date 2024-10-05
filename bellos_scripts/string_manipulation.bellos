@@ -6,31 +6,32 @@
 # String concatenation
 first_name=John
 last_name=Doe
-full_name=$first_name $last_name
+full_name="$first_name $last_name"
 echo Full name: $full_name
 
 # String length
 string="Hello, World!"
-echo "The string '$string' has ${#string} characters."
+echo The string '$string' has ${#string} characters.
 
 # Substring extraction
-echo "The first 5 characters are: ${string:0:5}"
+echo The first 5 characters are: ${string:0:5}
 
 # String replacement
 sentence="The quick brown fox jumps over the lazy dog"
-echo "Original sentence: $sentence"
+echo Original sentence: $sentence
 new_sentence=${sentence/fox/cat}
-echo "Modified sentence: $new_sentence"
+echo Modified sentence: $new_sentence
 
 # Converting to uppercase and lowercase
-echo "Uppercase: ${string^^}"
-echo "Lowercase: ${string,,}"
+echo Uppercase: ${string^^}
+echo Lowercase: ${string,,}
 
 # Trimming whitespace
 padded_string="   trim me   "
-echo "Original string: '$padded_string'"
-trimmed_string=${padded_string## }
-trimmed_string=${trimmed_string%% }
-echo "Trimmed string: '$trimmed_string'"
+echo Original string: '$padded_string'
+trimmed_string="${padded_string#"${padded_string%%[![:space:]]*}"}"  # Trim leading whitespace
+trimmed_string="${trimmed_string%"${trimmed_string##*[![:space:]]}"}"  # Trim trailing whitespace
+echo Trimmed string: '$trimmed_string'
 
-echo "String manipulation operations completed."
+# Completion message
+echo String manipulation operations completed.

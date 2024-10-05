@@ -45,30 +45,11 @@ impl Processes {
             .map(|arg| interpreter.expand_variables(arg))
             .collect();
 
-        // Handle arithmetic assignments
-        if expanded_name.contains('=') {
-            let parts: Vec<&str> = expanded_name.splitn(2, '=').collect();
-            if parts.len() == 2 {
-                let var_name = parts[0].trim().to_string();
-                let var_value = parts[1].trim().to_string();
-
-                if var_value.starts_with("$((") && var_value.ends_with("))") {
-                    // Arithmetic expression
-                    let result = interpreter.evaluate_arithmetic(&var_value)?;
-                    interpreter.variables.insert(var_name, result.to_string());
-                } else {
-                    // Regular variable assignment
-                    let expanded_value = interpreter.expand_variables(&var_value);
-                    interpreter.variables.insert(var_name, expanded_value);
-                }
-                return Ok(Some(0));
-            }
-        }
-
         match expanded_name.as_str() {
             "echo" => {
                 let output = expanded_args.join(" ");
                 println!("{}", output);
+                io::stdout().flush().unwrap();
                 Ok(Some(0))
             }
             "cd" => {
@@ -149,11 +130,7 @@ impl Processes {
                 Ok(Some(0))
             }
             _ => {
-                if let Some(func) = interpreter.functions.get(&expanded_name) {
-                    return interpreter.interpret_node(Box::new(func.clone()));
-                }
-
-                // If it's not a built-in command or variable assignment, try to execute as external command
+                // If it's not a built-in command, try to execute as external command
                 match Command::new(&expanded_name).args(&expanded_args).spawn() {
                     Ok(mut child) => {
                         let status = child.wait().map_err(|e| e.to_string())?;

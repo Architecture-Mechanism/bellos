@@ -5,7 +5,7 @@
 
 # Simple function
 function greet() {
-    echo "Hello, $1!"
+    echo Hello
 }
 
 echo "Testing simple function:"

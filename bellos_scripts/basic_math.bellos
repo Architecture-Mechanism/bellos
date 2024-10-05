@@ -5,41 +5,41 @@
 
 # Addition
 result=$((5 + 3))
-echo Addition: 5 + 3 = $result
+echo Addition: "5 + 3 =" $result
 
 # Subtraction
 result=$((10 - 4))
-echo Subtraction: 10 - 4 = $result
+echo Subtraction: "10 - 4 =" $result
 
 # Multiplication
 result=$((6 * 7))
-echo Multiplication: 6 * 7 = $result
+echo Multiplication: "6 * 7 =" $result
 
 # Division
 result=$((20 / 4))
-echo Division: 20 / 4 = $result
+echo Division: "20 / 4 =" $result
 
 # Modulus
 result=$((17 % 5))
-echo Modulus: 17 % 5 = $result
+echo Modulus: "17 % 5 =" $result
 
 # Compound operation
 result=$(( (10 + 5) * 2 ))
-echo Compound: (10 + 5) * 2 = $result
+echo Compound: "(10 + 5) * 2 =" $result
 
 # Using variables
 a=7
 b=3
 result=$((a + b))
-echo Variables: $a + $b = $result
+echo Variables: "$a + $b =" $result
 
 # Increment
 count=0
 count=$((count + 1))
-echo Increment: count after increment = $count
+echo Increment: count after increment "=" $count
 
 # Decrement
 count=$((count - 1))
-echo Decrement: count after decrement = $count
+echo Decrement: count after decrement "=" $count
 
 echo Basic math operations completed.

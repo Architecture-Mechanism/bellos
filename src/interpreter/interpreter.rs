@@ -222,7 +222,7 @@ impl Interpreter {
             let a = self.get_var_value(tokens[0])?;
             let b = self.get_var_value(tokens[2])?;
 
-            match tokens[1] {
+            let result = match tokens[1] {
                 "+" => Ok(a + b),
                 "-" => Ok(a - b),
                 "*" => Ok(a * b),
@@ -241,7 +241,9 @@ impl Interpreter {
                     }
                 }
                 _ => Err(format!("Unsupported operation: {}", tokens[1])),
-            }
+            };
+
+            result
         } else {
             Err("Invalid arithmetic expression".to_string())
         }

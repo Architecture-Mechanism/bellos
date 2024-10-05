@@ -38,10 +38,8 @@ impl Executor {
 
     pub fn run(&mut self, args: Vec<String>) -> Result<(), String> {
         if args.len() > 1 {
-            // Execute script file
             self.execute_script(&args[1])
         } else {
-            // Interactive mode
             self.run_interactive_mode()
         }
     }
@@ -64,34 +62,13 @@ impl Executor {
             let line = line.map_err(|e| format!("Error reading line {}: {}", index + 1, e))?;
             let trimmed_line = line.trim();
             if trimmed_line.is_empty() || trimmed_line.starts_with('#') {
-                continue; // Skip empty lines and comments
-            }
-
-            // Handle variable assignments and arithmetic operations
-            if trimmed_line.contains('=') {
-                let parts: Vec<&str> = trimmed_line.splitn(2, '=').collect();
-                if parts.len() == 2 {
-                    let var_name = parts[0].trim().to_string();
-                    let var_value = parts[1].trim().to_string();
-
-                    if var_value.starts_with("$((") && var_value.ends_with("))") {
-                        // Arithmetic expression
-                        let result = self.interpreter.evaluate_arithmetic(&var_value)?;
-                        self.interpreter
-                            .variables
-                            .insert(var_name, result.to_string());
-                    } else {
-                        // Regular variable assignment
-                        let expanded_value = self.interpreter.expand_variables(&var_value);
-                        self.interpreter.variables.insert(var_name, expanded_value);
-                    }
-                    continue;
-                }
+                continue;
             }
 
             if let Err(e) = self.process_content(trimmed_line) {
-                return Err(format!("Error on line {}: {}", index + 1, e));
+                eprintln!("Error on line {}: {}", index + 1, e);
             }
+            io::stdout().flush().unwrap();
         }
         Ok(())
     }
@@ -114,28 +91,6 @@ impl Executor {
     }
 
     fn process_content(&mut self, content: &str) -> Result<(), String> {
-        // Handle variable assignments and arithmetic operations
-        if content.contains('=') {
-            let parts: Vec<&str> = content.splitn(2, '=').collect();
-            if parts.len() == 2 {
-                let var_name = parts[0].trim().to_string();
-                let var_value = parts[1].trim().to_string();
-
-                if var_value.starts_with("$((") && var_value.ends_with("))") {
-                    // Arithmetic expression
-                    let result = self.interpreter.evaluate_arithmetic(&var_value)?;
-                    self.interpreter
-                        .variables
-                        .insert(var_name, result.to_string());
-                } else {
-                    // Regular variable assignment
-                    let expanded_value = self.interpreter.expand_variables(&var_value);
-                    self.interpreter.variables.insert(var_name, expanded_value);
-                }
-                return Ok(());
-            }
-        }
-
         let ast_nodes = self.parse_content(content)?;
         self.execute(ast_nodes)
     }
@@ -159,6 +114,11 @@ impl Executor {
             ASTNode::Command { name, args } => Arc::get_mut(&mut self.processes)
                 .unwrap()
                 .execute_command(&mut self.interpreter, name, args),
+            ASTNode::Assignment { name, value } => {
+                let expanded_value = self.interpreter.expand_variables(&value);
+                self.interpreter.variables.insert(name, expanded_value);
+                Ok(None)
+            }
             ASTNode::Pipeline(commands) => {
                 self.processes.execute_pipeline(&self.interpreter, commands)
             }
