@@ -47,8 +47,6 @@ impl Executor {
     }
 
     fn execute_script(&mut self, filename: &str) -> Result<(), String> {
-        println!("Executing script: {}", filename);
-
         if !filename.ends_with(".bellos") {
             return Err(format!("Not a .bellos script: {}", filename));
         }
