@@ -1,4 +1,5 @@
 # bellos
+- Can be used in any Operating System but Bellande Operating System works optimally when you use Bellos Scripting Language
 
 ## Bellande Operating System Scripting Language Features
 - **Command Execution**: Run both built-in and external commands.
