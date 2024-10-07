@@ -2,9 +2,14 @@
 name = "bellos"
 version = "0.0.4"
 edition = "2021"
-authors = ["Ronaldson Bellande ronaldsonbellande@gmail.com"]
-description = "Bellande Operating System Scripting Programming Language written in Rust"
+authors = ["Ronaldson Bellande <ronaldsonbellande@gmail.com>"]
+description = "Bellande Operating System Scripting Language written in Rust"
 license = "GPL-3.0-or-later"
+repository = "https://github.com/Architecture-Mechanism/bellos"
+documentation = "https://bellande-architecture-mechanism-research-innovation-center.org/bellos/docs"
+readme = "README.md"
+keywords = ["scripting-language", "operating-system", "bellos"]
+categories = ["compilers"]
 
 [lib]
 path = "src/bellos.rs"
