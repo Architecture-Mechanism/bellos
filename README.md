@@ -1,9 +1,6 @@
 # bellos
 - Can be used in any Operating System but Bellande Operating System works optimally when you use Bellos Scripting Language
 
-# Preprint
-- 
-
 ## Bellande Operating System Scripting Language Features
 - **Command Execution**: Run both built-in and external commands.
 - **Variable Assignment and Expansion**: Assign and use variables within scripts or interactive mode.
@@ -57,16 +54,12 @@
 
 ```
 Name: bellos
-Version: 0.0.1
 Summary: Bellande Operating System Scripting Language
 Home-page: github.com/RonaldsonBellande/bellos
 Author: Ronaldson Bellande
 Author-email: ronaldsonbellande@gmail.com
 License: GNU General Public License v3.0
 ```
-
-# Publish Paper
-- Soon
 
 ## License
 
