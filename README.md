@@ -13,7 +13,7 @@
 - **Environment Variable Handling**: Access and modify environment variables.
 
 # Bellos Release
-- https://github.com/Architecture-Mechanism/bellos/releases/tag/0.0.4
+- https://github.com/Architecture-Mechanism/bellos/releases
 
 # Bellos Installer
 - https://github.com/Architecture-Mechanism/bellos_installer
