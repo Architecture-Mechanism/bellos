@@ -17,6 +17,7 @@
 
 # Bellos Installer
 - https://github.com/Architecture-Mechanism/bellos_installer
+- After install you can run the script with ``` hello_world.bellos```
 
 # Usage of Bellande Rust Executable Builder
 - https://github.com/Architecture-Mechanism/bellande_rust_executable
