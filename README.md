@@ -61,7 +61,7 @@
 ```
 Name: bellos
 Summary: Bellande Operating System Scripting Language
-Home-page: github.com/RonaldsonBellande/bellos
+Home-page: github.com/Architecture-Mechanism/bellos
 Author: Ronaldson Bellande
 Author-email: ronaldsonbellande@gmail.com
 License: GNU General Public License v3.0
@@ -69,4 +69,4 @@ License: GNU General Public License v3.0
 
 ## License
 
-BellandeOS Scripting Language is distributed under the [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.en.html), see [LICENSE](https://github.com/Architecture-Mechanism/bellos/blob/main/LICENSE) and [NOTICE](https://github.com/Architecture-Mechanism/bellos/blob/main/LICENSE) for more information.
+Bellos is a BellandeOS Scripting Language is distributed under the [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.en.html), see [LICENSE](https://github.com/Architecture-Mechanism/bellos/blob/main/LICENSE) and [NOTICE](https://github.com/Architecture-Mechanism/bellos/blob/main/LICENSE) for more information.
