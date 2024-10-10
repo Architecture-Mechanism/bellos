@@ -30,6 +30,11 @@
 ./bellos hello_world.bellos 
 ```
 
+# Bellos interactive mode
+```
+./bellos
+```
+
 ## Built-in Commands
 
 ### Basic Commands
