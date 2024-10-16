@@ -18,8 +18,6 @@ use crate::utilities::utilities::{ASTNode, Token};
 pub struct Parser {
     tokens: Vec<Token>,
     position: usize,
-    recursion_depth: usize,
-    max_recursion_depth: usize,
 }
 
 impl Parser {
@@ -27,199 +25,48 @@ impl Parser {
         Parser {
             tokens,
             position: 0,
-            recursion_depth: 0,
-            max_recursion_depth: 1000,
         }
-    }
-
-    fn increment_recursion(&mut self) -> Result<(), String> {
-        self.recursion_depth += 1;
-        if self.recursion_depth > self.max_recursion_depth {
-            Err("Maximum recursion depth exceeded".to_string())
-        } else {
-            Ok(())
-        }
-    }
-
-    fn decrement_recursion(&mut self) {
-        self.recursion_depth -= 1;
     }
 
     pub fn parse(&mut self) -> Result<Vec<ASTNode>, String> {
         let mut nodes = Vec::new();
         while self.position < self.tokens.len() {
+            self.skip_newlines();
+            if self.position >= self.tokens.len() {
+                break;
+            }
             nodes.push(self.parse_statement()?);
-            self.consume_if(Token::Semicolon);
-            self.consume_if(Token::NewLine);
         }
         Ok(nodes)
     }
 
     fn parse_statement(&mut self) -> Result<ASTNode, String> {
-        self.increment_recursion()?;
-        let result = if self.position >= self.tokens.len() {
-            Err("Unexpected end of input".to_string())
-        } else {
-            match &self.tokens[self.position] {
-                Token::Word(_) => self.parse_command_or_assignment(),
-                Token::LeftParen => self.parse_block(),
-                Token::If => self.parse_if(),
-                Token::While => self.parse_while(),
-                Token::For => self.parse_for(),
-                Token::Function => self.parse_function(),
-                _ => Err(format!(
-                    "Unexpected token: {:?}",
-                    self.tokens[self.position]
-                )),
-            }
-        };
-        self.decrement_recursion();
-        result
-    }
-
-    fn parse_command_or_assignment(&mut self) -> Result<ASTNode, String> {
-        let name = match &self.tokens[self.position] {
-            Token::Word(w) => w.clone(),
-            _ => {
-                return Err(format!(
-                    "Expected word, found {:?}",
-                    self.tokens[self.position]
-                ))
-            }
-        };
-        self.position += 1;
-
-        if self.position < self.tokens.len() && self.tokens[self.position] == Token::Assignment {
-            self.position += 1;
-            let value = self.parse_expression()?;
-            Ok(ASTNode::Assignment { name, value })
-        } else {
-            let mut args = Vec::new();
-            while self.position < self.tokens.len()
-                && !matches!(
-                    self.tokens[self.position],
-                    Token::Pipe
-                        | Token::Redirect(_)
-                        | Token::Semicolon
-                        | Token::NewLine
-                        | Token::Ampersand
-                        | Token::Assignment
-                )
-            {
-                match &self.tokens[self.position] {
-                    Token::Word(w) => args.push(w.clone()),
-                    Token::String(s) => args.push(s.clone()),
-                    _ => break,
-                }
-                self.position += 1;
-            }
-            let command = ASTNode::Command { name, args };
-            self.parse_pipeline_or_redirect(command)
-        }
-    }
-
-    fn parse_expression(&mut self) -> Result<String, String> {
-        let mut expression = String::new();
-        let mut paren_count = 0;
-
-        while self.position < self.tokens.len() {
-            match &self.tokens[self.position] {
-                Token::Word(w) => expression.push_str(w),
-                Token::String(s) => {
-                    expression.push('"');
-                    expression.push_str(s);
-                    expression.push('"');
-                }
-                Token::LeftParen => {
-                    expression.push('(');
-                    paren_count += 1;
-                }
-                Token::RightParen if paren_count > 0 => {
-                    expression.push(')');
-                    paren_count -= 1;
-                }
-                Token::Semicolon | Token::NewLine if paren_count == 0 => break,
-                Token::Assignment => expression.push('='),
-                _ if paren_count == 0 => break,
-                _ => expression.push_str(&format!("{:?}", self.tokens[self.position])),
-            }
-            self.position += 1;
-        }
-
-        if paren_count != 0 {
-            return Err("Mismatched parentheses in expression".to_string());
-        }
-
-        Ok(expression)
-    }
-
-    fn parse_pipeline_or_redirect(&mut self, left: ASTNode) -> Result<ASTNode, String> {
         if self.position >= self.tokens.len() {
-            return Ok(left);
+            return Err("Unexpected end of input".to_string());
         }
-
         match &self.tokens[self.position] {
-            Token::Pipe => {
-                self.position += 1;
-                let right = self.parse_command_or_assignment()?;
-                let pipeline = ASTNode::Pipeline(vec![left, right]);
-                self.parse_pipeline_or_redirect(pipeline)
-            }
-            Token::Redirect(direction) => {
-                self.position += 1;
-                let target = if self.position < self.tokens.len() {
-                    match &self.tokens[self.position] {
-                        Token::Word(w) => w.clone(),
-                        Token::String(s) => s.clone(),
-                        _ => {
-                            return Err(format!(
-                                "Expected word after redirect, found {:?}",
-                                self.tokens[self.position]
-                            ))
-                        }
-                    }
-                } else {
-                    return Err("Unexpected end of input after redirect".to_string());
-                };
-                self.position += 1;
-                let redirect = ASTNode::Redirect {
-                    node: Box::new(left),
-                    direction: direction.clone(),
-                    target,
-                };
-                self.parse_pipeline_or_redirect(redirect)
-            }
-            Token::Ampersand => {
-                self.position += 1;
-                Ok(ASTNode::Background(Box::new(left)))
-            }
-            _ => Ok(left),
+            Token::Word(w) if w.eq_ignore_ascii_case("if") => self.parse_if(),
+            Token::Word(w) if w.eq_ignore_ascii_case("while") => self.parse_while(),
+            Token::Word(w) if w.eq_ignore_ascii_case("for") => self.parse_for(),
+            Token::Word(w) if w.eq_ignore_ascii_case("case") => self.parse_case(),
+            Token::Word(w) if w.eq_ignore_ascii_case("function") => self.parse_function(),
+            _ => self.parse_command_or_assignment(),
         }
-    }
-
-    fn parse_block(&mut self) -> Result<ASTNode, String> {
-        self.position += 1; // Consume left paren
-        let mut statements = Vec::new();
-        while self.position < self.tokens.len() && self.tokens[self.position] != Token::RightParen {
-            statements.push(self.parse_statement()?);
-            self.consume_if(Token::Semicolon);
-            self.consume_if(Token::NewLine);
-        }
-        self.expect_token(Token::RightParen)?;
-        Ok(ASTNode::Block(statements))
     }
 
     fn parse_if(&mut self) -> Result<ASTNode, String> {
         self.position += 1; // Consume 'if'
         let condition = Box::new(self.parse_command()?);
-        self.expect_token(Token::Then)?;
-        let then_block = Box::new(self.parse_block()?);
-        let else_block = if self.consume_if(Token::Else) {
-            Some(Box::new(self.parse_block()?))
+        self.skip_newlines_and_expect("then")?;
+        let then_block = Box::new(self.parse_block("else", "fi")?);
+        let else_block = if self.current_token_is("else") {
+            self.position += 1;
+            self.skip_newlines();
+            Some(Box::new(self.parse_block("fi", "fi")?))
         } else {
             None
         };
-        self.expect_token(Token::Fi)?;
+        self.skip_newlines_and_expect("fi")?;
         Ok(ASTNode::If {
             condition,
             then_block,
@@ -230,65 +77,70 @@ impl Parser {
     fn parse_while(&mut self) -> Result<ASTNode, String> {
         self.position += 1; // Consume 'while'
         let condition = Box::new(self.parse_command()?);
-        self.expect_token(Token::Do)?;
-        let block = Box::new(self.parse_block()?);
-        self.expect_token(Token::Done)?;
+        self.skip_newlines_and_expect("do")?;
+        let block = Box::new(self.parse_block("done", "done")?);
+        self.skip_newlines_and_expect("done")?;
         Ok(ASTNode::While { condition, block })
     }
 
     fn parse_for(&mut self) -> Result<ASTNode, String> {
         self.position += 1; // Consume 'for'
-        let var = match &self.tokens[self.position] {
-            Token::Word(w) => w.clone(),
-            _ => return Err("Expected variable name after 'for'".to_string()),
-        };
-        self.position += 1;
-        self.expect_token(Token::In)?;
-        let mut list = Vec::new();
-        while self.position < self.tokens.len() && self.tokens[self.position] != Token::Do {
-            match &self.tokens[self.position] {
-                Token::Word(w) => list.push(w.clone()),
-                Token::String(s) => list.push(s.clone()),
-                _ => break,
-            }
-            self.position += 1;
-        }
-        self.expect_token(Token::Do)?;
-        let block = Box::new(self.parse_block()?);
-        self.expect_token(Token::Done)?;
+        let var = self.expect_word()?;
+        self.skip_newlines_and_expect("in")?;
+        let list = self.parse_list()?;
+        self.skip_newlines_and_expect("do")?;
+        let block = Box::new(self.parse_block("done", "done")?);
+        self.skip_newlines_and_expect("done")?;
         Ok(ASTNode::For { var, list, block })
+    }
+
+    fn parse_case(&mut self) -> Result<ASTNode, String> {
+        self.position += 1; // Consume 'case'
+        let var = self.parse_expression()?;
+        self.skip_newlines_and_expect("in")?;
+        let mut cases = Vec::new();
+        while !self.current_token_is("esac") {
+            self.skip_newlines();
+            let pattern = self.parse_expression()?;
+            self.expect_token(&Token::RightParen)?;
+            let block = self.parse_block(";;", "esac")?;
+            cases.push((pattern, block));
+            self.skip_newlines();
+            if self.current_token_is(";;") {
+                self.position += 1;
+            }
+        }
+        self.skip_newlines_and_expect("esac")?;
+        Ok(ASTNode::Case { var, cases })
     }
 
     fn parse_function(&mut self) -> Result<ASTNode, String> {
         self.position += 1; // Consume 'function'
-        let name = match &self.tokens[self.position] {
-            Token::Word(w) => w.clone(),
-            _ => {
-                return Err(format!(
-                    "Expected function name, found {:?}",
-                    self.tokens[self.position]
-                ))
-            }
-        };
-        self.position += 1;
-        let body = Box::new(self.parse_block()?);
+        let name = self.expect_word()?;
+        self.skip_newlines();
+        self.expect_token(&Token::LeftParen)?;
+        self.skip_newlines();
+        let body = Box::new(self.parse_block(")", ")")?);
+        self.expect_token(&Token::RightParen)?;
         Ok(ASTNode::Function { name, body })
+    }
+
+    fn parse_block(&mut self, end_token1: &str, end_token2: &str) -> Result<ASTNode, String> {
+        let mut statements = Vec::new();
+        while !self.current_token_is(end_token1) && !self.current_token_is(end_token2) {
+            self.skip_newlines();
+            if self.current_token_is(end_token1) || self.current_token_is(end_token2) {
+                break;
+            }
+            statements.push(self.parse_statement()?);
+        }
+        Ok(ASTNode::Block(statements))
     }
 
     fn parse_command(&mut self) -> Result<ASTNode, String> {
         let mut args = Vec::new();
-        while self.position < self.tokens.len()
-            && !matches!(
-                self.tokens[self.position],
-                Token::Then | Token::Do | Token::Done | Token::Fi | Token::Else
-            )
-        {
-            match &self.tokens[self.position] {
-                Token::Word(w) => args.push(w.clone()),
-                Token::String(s) => args.push(s.clone()),
-                _ => break,
-            }
-            self.position += 1;
+        while self.position < self.tokens.len() && !self.is_command_end() {
+            args.push(self.expect_word()?);
         }
         if args.is_empty() {
             Err("Expected command".to_string())
@@ -300,25 +152,109 @@ impl Parser {
         }
     }
 
-    fn expect_token(&mut self, expected: Token) -> Result<(), String> {
-        if self.position < self.tokens.len() && self.tokens[self.position] == expected {
+    fn parse_list(&mut self) -> Result<Vec<String>, String> {
+        let mut list = Vec::new();
+        while !self.current_token_is("do") {
+            list.push(self.expect_word()?);
+            self.skip_newlines();
+        }
+        Ok(list)
+    }
+
+    fn parse_expression(&mut self) -> Result<String, String> {
+        self.expect_word()
+    }
+
+    fn expect_word(&mut self) -> Result<String, String> {
+        if self.position >= self.tokens.len() {
+            return Err("Unexpected end of input".to_string());
+        }
+        match &self.tokens[self.position] {
+            Token::Word(w) | Token::String(w) => {
+                self.position += 1;
+                Ok(w.clone())
+            }
+            _ => Err(format!(
+                "Expected word, found {:?}",
+                self.tokens[self.position]
+            )),
+        }
+    }
+
+    fn expect_token(&mut self, expected: &Token) -> Result<(), String> {
+        if self.position >= self.tokens.len() {
+            return Err(format!("Expected {:?}, found end of input", expected));
+        }
+        if self.tokens[self.position] == *expected {
             self.position += 1;
             Ok(())
         } else {
             Err(format!(
                 "Expected {:?}, found {:?}",
-                expected,
-                self.tokens.get(self.position).unwrap_or(&Token::NewLine)
+                expected, self.tokens[self.position]
             ))
         }
     }
 
-    fn consume_if(&mut self, token: Token) -> bool {
-        if self.position < self.tokens.len() && self.tokens[self.position] == token {
+    fn current_token_is(&self, token: &str) -> bool {
+        if self.position >= self.tokens.len() {
+            return false;
+        }
+        match &self.tokens[self.position] {
+            Token::Word(w) => w.eq_ignore_ascii_case(token),
+            _ => false,
+        }
+    }
+
+    fn skip_newlines(&mut self) {
+        while self.position < self.tokens.len() && self.tokens[self.position] == Token::NewLine {
             self.position += 1;
-            true
+        }
+    }
+
+    fn skip_newlines_and_expect(&mut self, expected: &str) -> Result<(), String> {
+        self.skip_newlines();
+        if self.position >= self.tokens.len() {
+            return Err(format!("Expected {}, found end of input", expected));
+        }
+        if self.current_token_is(expected) {
+            self.position += 1;
+            Ok(())
         } else {
-            false
+            Err(format!(
+                "Expected {}, found {:?}",
+                expected, self.tokens[self.position]
+            ))
+        }
+    }
+
+    fn is_command_end(&self) -> bool {
+        self.position >= self.tokens.len()
+            || matches!(
+                self.tokens[self.position],
+                Token::Semicolon | Token::NewLine
+            )
+            || self.current_token_is("then")
+            || self.current_token_is("do")
+            || self.current_token_is("done")
+            || self.current_token_is("fi")
+            || self.current_token_is("else")
+            || self.current_token_is("elif")
+            || self.current_token_is("esac")
+    }
+
+    fn parse_command_or_assignment(&mut self) -> Result<ASTNode, String> {
+        let name = self.expect_word()?;
+        if self.position < self.tokens.len() && self.tokens[self.position] == Token::Assignment {
+            self.position += 1;
+            let value = self.parse_expression()?;
+            Ok(ASTNode::Assignment { name, value })
+        } else {
+            let mut args = Vec::new();
+            while self.position < self.tokens.len() && !self.is_command_end() {
+                args.push(self.expect_word()?);
+            }
+            Ok(ASTNode::Command { name, args })
         }
     }
 }

@@ -1,54 +1,52 @@
 #!/usr/bin/env bellos
 # File: control_structures.bellos
 
-# Demonstrating if statements and loops
-
-# If-else statement
-echo "If-else statement:"
+# Demonstrating if-else statements
+echo "Demonstrating if-else statements:"
 x=10
-if [ $x -gt 5 ]; then
+If [ $x -gt 5 ] Then
     echo "x is greater than 5"
-else
+Else
     echo "x is not greater than 5"
-fi
+Fi
 
-# Nested if-else
-echo "\nNested if-else:"
+# Demonstrating nested if-else
+echo "Demonstrating nested if-else:"
 y=20
-if [ $x -gt 5 ]; then
-    if [ $y -gt 15 ]; then
+If [ $x -gt 5 ] Then
+    If [ $y -gt 15 ] Then
         echo "x is greater than 5 and y is greater than 15"
-    else
+    Else
         echo "x is greater than 5 but y is not greater than 15"
-    fi
-else
+    Fi
+Else
     echo "x is not greater than 5"
-fi
+Fi
 
-# While loop
-echo "\nWhile loop:"
+# Demonstrating while loop
+echo "Demonstrating while loop:"
 counter=0
-while [ $counter -lt 5 ]; do
+While [ $counter -lt 5 ] Do
     echo "Counter: $counter"
     counter=$((counter + 1))
-done
+Done
 
-# For loop
-echo "\nFor loop:"
-for i in 1 2 3 4 5; do
+# Demonstrating for loop
+echo "Demonstrating for loop:"
+For i In 1 2 3 4 5 Do
     echo "Iteration: $i"
-done
+Done
 
-# For loop with range
-echo "\nFor loop with range:"
-for i in $(seq 1 5); do
+# Demonstrating for loop with command substitution
+echo "Demonstrating for loop with command substitution:"
+For i In $(seq 1 5) Do
     echo "Number: $i"
-done
+Done
 
-# Case statement
-echo "\nCase statement:"
+# Demonstrating case statement
+echo "Demonstrating case statement:"
 fruit="apple"
-case $fruit in
+Case $fruit In
     "apple")
         echo "It's an apple"
         ;;
@@ -61,4 +59,14 @@ case $fruit in
     *)
         echo "Unknown fruit"
         ;;
-esac
+Esac
+
+# Demonstrating function
+echo "Demonstrating function:"
+Function greet (
+    echo "Hello, $1!"
+)
+greet "World"
+greet "Bellos"
+
+echo "Control structures demonstration completed."

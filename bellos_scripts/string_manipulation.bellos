@@ -1,37 +1,54 @@
 #!/usr/bin/env bellos
+
 # File: string_manipulation.bellos
+# Demonstrating basic string manipulation in Bellos
 
-# Demonstrating string manipulation
-
-# String concatenation
+# String assignment
+echo "String assignment:"
 first_name=John
 last_name=Doe
-full_name="$first_name $last_name"
-echo Full name: $full_name
+echo "first_name: $first_name"
+echo "last_name: $last_name"
+echo 
 
-# String length
-string="Hello, World!"
-echo The string '$string' has ${#string} characters.
+# String concatenation
+echo "String concatenation:"
+full_name="$first_name  $last_name"
+echo full_name: $full_name
+echo
 
-# Substring extraction
-echo The first 5 characters are: ${string:0:5}
+# Using strings in commands
+echo "Using strings in commands:"
+greeting=Hello
+echo "$greeting, $full_name!"
+echo
 
-# String replacement
+# Quoting strings
+echo "Quoting strings:"
 sentence="The quick brown fox jumps over the lazy dog"
-echo Original sentence: $sentence
-new_sentence=${sentence/fox/cat}
-echo Modified sentence: $new_sentence
+echo With double quotes: "$sentence"
+echo With single quotes: '$sentence'
+echo
 
-# Converting to uppercase and lowercase
-echo Uppercase: ${string^^}
-echo Lowercase: ${string,,}
+# Assigning command output to a variable
+echo "Assigning command output to a variable:"
+current_date=10-17-2025
+echo "The current date is: $current_date"
+echo
 
-# Trimming whitespace
-padded_string="   trim me   "
-echo Original string: '$padded_string'
-trimmed_string="${padded_string#"${padded_string%%[![:space:]]*}"}"  # Trim leading whitespace
-trimmed_string="${trimmed_string%"${trimmed_string##*[![:space:]]}"}"  # Trim trailing whitespace
-echo Trimmed string: '$trimmed_string'
+# Escaping special characters
+echo "Escaping special characters:"
+path=/home/user/documents
+echo "Path with slashes: $path"
+echo "Dollar sign: $100"
+echo
+
+# Using variables in paths
+echo "Using variables in paths:"
+username=johndoe
+user_home=/home/$username
+echo "User's home directory: $user_home"
+echo
 
 # Completion message
-echo String manipulation operations completed.
+echo "String manipulation operations completed."

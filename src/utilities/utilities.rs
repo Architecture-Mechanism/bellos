@@ -34,6 +34,8 @@ pub enum Token {
     Done,
     For,
     In,
+    Case,
+    Esac,
     Function,
 }
 
@@ -90,6 +92,10 @@ pub enum ASTNode {
         body: Box<ASTNode>,
     },
     Background(Box<ASTNode>),
+    Case {
+        var: String,
+        cases: Vec<(String, ASTNode)>,
+    },
 }
 
 impl ASTNode {

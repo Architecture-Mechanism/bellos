@@ -21,7 +21,7 @@
 
 # Usage of Bellande Rust Executable Builder
 - https://github.com/Architecture-Mechanism/bellande_rust_executable
-- ```bellande_rust_executable -d dependencies.txt -s src -m bellos.rs -o executable/bellos``` 
+- ```bellande_rust_executable -d dependencies.bellande -s src -m bellos.rs -o executable/bellos``` 
 
 # Usage of Bellande Rust Importer
 - https://github.com/Architecture-Mechanism/bellande_importer
@@ -37,7 +37,6 @@
 ```
 
 ## Built-in Commands
-
 ### Basic Commands
 - **echo [args...]**: Print arguments to standard output.
 - **cd [directory]**: Change the current working directory.
