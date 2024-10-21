@@ -13,26 +13,19 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::executor_processes::processes::Processes;
-use crate::interpreter::interpreter::Interpreter;
-use crate::lexer::lexer::Lexer;
-use crate::parser::parser::Parser;
-use crate::utilities::utilities::ASTNode;
+use crate::shell::shell::Shell;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, Write};
 use std::path::Path;
-use std::sync::Arc;
 
 pub struct Executor {
-    interpreter: Interpreter,
-    processes: Arc<Processes>,
+    shell: Shell,
 }
 
 impl Executor {
     pub fn new() -> Self {
         Executor {
-            interpreter: Interpreter::new(),
-            processes: Arc::new(Processes::new()),
+            shell: Shell::new(),
         }
     }
 
@@ -65,7 +58,7 @@ impl Executor {
                 continue;
             }
 
-            if let Err(e) = self.process_content(trimmed_line) {
+            if let Err(e) = self.shell.run(trimmed_line) {
                 eprintln!("Error on line {}: {}", index + 1, e);
             }
             io::stdout().flush().unwrap();
@@ -84,56 +77,9 @@ impl Executor {
                 continue;
             }
 
-            if let Err(e) = self.process_content(&input) {
+            if let Err(e) = self.shell.run(&input) {
                 eprintln!("Error: {}", e);
             }
-        }
-    }
-
-    fn process_content(&mut self, content: &str) -> Result<(), String> {
-        let ast_nodes = self.parse_content(content)?;
-        self.execute(ast_nodes)
-    }
-
-    fn parse_content(&self, content: &str) -> Result<Vec<ASTNode>, String> {
-        let mut lexer = Lexer::new(content.to_string());
-        let tokens = lexer.tokenize();
-        let mut parser = Parser::new(tokens);
-        parser.parse()
-    }
-
-    pub fn execute(&mut self, nodes: Vec<ASTNode>) -> Result<(), String> {
-        for node in nodes {
-            self.execute_node(node)?;
-        }
-        Ok(())
-    }
-
-    fn execute_node(&mut self, node: ASTNode) -> Result<Option<i32>, String> {
-        match node {
-            ASTNode::Command { name, args } => Arc::get_mut(&mut self.processes)
-                .unwrap()
-                .execute_command(&mut self.interpreter, name, args),
-            ASTNode::Assignment { name, value } => {
-                let expanded_value = self.interpreter.expand_variables(&value);
-                self.interpreter.variables.insert(name, expanded_value);
-                Ok(None)
-            }
-            ASTNode::Pipeline(commands) => {
-                self.processes.execute_pipeline(&self.interpreter, commands)
-            }
-            ASTNode::Redirect {
-                node,
-                direction,
-                target,
-            } => Arc::get_mut(&mut self.processes).unwrap().execute_redirect(
-                &mut self.interpreter,
-                *node,
-                direction,
-                target,
-            ),
-            ASTNode::Background(node) => self.processes.execute_background(*node),
-            _ => self.interpreter.interpret_node(Box::new(node)),
         }
     }
 }

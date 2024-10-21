@@ -14,9 +14,10 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 mod executor_processes;
-mod interpreter;
+mod interpreter_logic;
 mod lexer;
 mod parser;
+mod shell;
 mod utilities;
 
 use crate::executor_processes::executor::Executor;

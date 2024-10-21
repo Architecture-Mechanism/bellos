@@ -44,6 +44,14 @@ impl Lexer {
         }
 
         Some(match self.current_char() {
+            '[' => {
+                self.advance();
+                Token::LeftBracket
+            }
+            ']' => {
+                self.advance();
+                Token::RightBracket
+            }
             ' ' | '\t' => {
                 self.advance();
                 return self.next_token();
@@ -54,7 +62,12 @@ impl Lexer {
             }
             ';' => {
                 self.advance();
-                Token::Semicolon
+                if self.current_char() == ';' {
+                    self.advance();
+                    Token::DoubleSemicolon
+                } else {
+                    Token::Semicolon
+                }
             }
             '|' => {
                 self.advance();
@@ -82,12 +95,12 @@ impl Lexer {
                     self.advance();
                     Token::Redirect(RedirectType::Append)
                 } else {
-                    Token::Redirect(RedirectType::Out)
+                    Token::Redirect(RedirectType::Output)
                 }
             }
             '<' => {
                 self.advance();
-                Token::Redirect(RedirectType::In)
+                Token::Redirect(RedirectType::Input)
             }
             '"' => self.read_string(),
             '$' => {
@@ -135,13 +148,18 @@ impl Lexer {
             "if" => Token::If,
             "then" => Token::Then,
             "else" => Token::Else,
+            "elif" => Token::Elif,
             "fi" => Token::Fi,
             "while" => Token::While,
             "do" => Token::Do,
             "done" => Token::Done,
             "for" => Token::For,
             "in" => Token::In,
+            "case" => Token::Case,
+            "esac" => Token::Esac,
             "function" => Token::Function,
+            "[" => Token::LeftBracket,
+            "]" => Token::RightBracket,
             _ => Token::Word(word),
         }
     }

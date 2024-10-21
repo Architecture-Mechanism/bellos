@@ -37,21 +37,25 @@ pub enum Token {
     Case,
     Esac,
     Function,
+    Elif,
+    LeftBracket,
+    RightBracket,
+    DoubleSemicolon,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum RedirectType {
-    Out,
+    Input,
+    Output,
     Append,
-    In,
 }
 
 impl RedirectType {
     pub fn as_str(&self) -> &'static str {
         match self {
-            RedirectType::Out => ">",
+            RedirectType::Output => ">",
             RedirectType::Append => ">>",
-            RedirectType::In => "<",
+            RedirectType::Input => "<",
         }
     }
 }
@@ -87,15 +91,21 @@ pub enum ASTNode {
         list: Vec<String>,
         block: Box<ASTNode>,
     },
+    Comparison {
+        left: String,
+        op: String,
+        right: String,
+    },
+    Case {
+        var: Box<ASTNode>,
+        cases: Vec<(ASTNode, ASTNode)>,
+    },
     Function {
         name: String,
         body: Box<ASTNode>,
     },
     Background(Box<ASTNode>),
-    Case {
-        var: String,
-        cases: Vec<(String, ASTNode)>,
-    },
+    Expression(String),
 }
 
 impl ASTNode {
@@ -104,5 +114,31 @@ impl ASTNode {
             ASTNode::Command { name, args } => name.is_empty() && args.is_empty(),
             _ => false,
         }
+    }
+}
+
+impl ToString for ASTNode {
+    fn to_string(&self) -> String {
+        match self {
+            ASTNode::Command { name, args } => format!("{} {}", name, args.join(" ")),
+            ASTNode::Assignment { name, value } => format!("{}={}", name, value),
+            ASTNode::Expression(expr) => expr.clone(),
+            _ => format!("{:?}", self),
+        }
+    }
+}
+
+impl PartialEq<str> for ASTNode {
+    fn eq(&self, other: &str) -> bool {
+        match self {
+            ASTNode::Expression(s) => s == other,
+            _ => false,
+        }
+    }
+}
+
+impl PartialEq<String> for ASTNode {
+    fn eq(&self, other: &String) -> bool {
+        self == other.as_str()
     }
 }

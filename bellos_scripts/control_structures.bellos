@@ -1,52 +1,80 @@
 #!/usr/bin/env bellos
-# File: control_structures.bellos
+# File: control_structures_with_seq.bellos
 
-# Demonstrating if-else statements
+# 1. Simple echo and variable assignment
 echo "Demonstrating if-else statements:"
 x=10
-If [ $x -gt 5 ] Then
-    echo "x is greater than 5"
-Else
-    echo "x is not greater than 5"
-Fi
 
-# Demonstrating nested if-else
+# 2. If-else statement
+if [ $x -gt 5 ]
+then
+    echo "x is greater than 5"
+else
+    echo "x is not greater than 5"
+fi
+
+# 3. Nested if-else
 echo "Demonstrating nested if-else:"
 y=20
-If [ $x -gt 5 ] Then
-    If [ $y -gt 15 ] Then
+if [ $x -gt 5 ]
+then
+    if [ $y -gt 15 ]
+    then
         echo "x is greater than 5 and y is greater than 15"
-    Else
+    else
         echo "x is greater than 5 but y is not greater than 15"
-    Fi
-Else
+    fi
+else
     echo "x is not greater than 5"
-Fi
+fi
 
-# Demonstrating while loop
+# 4. While loop
 echo "Demonstrating while loop:"
 counter=0
-While [ $counter -lt 5 ] Do
+while [ $counter -lt 5 ]
+do
     echo "Counter: $counter"
     counter=$((counter + 1))
-Done
+done
 
-# Demonstrating for loop
+# 5. For loop
 echo "Demonstrating for loop:"
-For i In 1 2 3 4 5 Do
+for i in 1 2 3 4 5
+do
     echo "Iteration: $i"
-Done
+done
 
-# Demonstrating for loop with command substitution
-echo "Demonstrating for loop with command substitution:"
-For i In $(seq 1 5) Do
-    echo "Number: $i"
-Done
+# 6. For loop with seq command
+echo "Demonstrating for loop with seq command:"
+for i in $(seq 1 5)
+do
+    echo "Number from seq: $i"
+done
 
-# Demonstrating case statement
+# 7. Using seq with different arguments
+echo "Demonstrating seq with different arguments:"
+echo "seq 3 (implicit start at 1, increment by 1):"
+for i in $(seq 3)
+do
+    echo "Value: $i"
+done
+
+echo "seq 2 5 (start at 2, increment by 1):"
+for i in $(seq 2 5)
+do
+    echo "Value: $i"
+done
+
+echo "seq 0 2 10 (start at 0, increment by 2):"
+for i in $(seq 0 2 10)
+do
+    echo "Value: $i"
+done
+
+# 8. Case statement
 echo "Demonstrating case statement:"
 fruit="apple"
-Case $fruit In
+case $fruit in
     "apple")
         echo "It's an apple"
         ;;
@@ -59,14 +87,16 @@ Case $fruit In
     *)
         echo "Unknown fruit"
         ;;
-Esac
+esac
 
-# Demonstrating function
-echo "Demonstrating function:"
-Function greet (
-    echo "Hello, $1!"
-)
-greet "World"
-greet "Bellos"
+# 9. Using seq in arithmetic operations
+echo "Using seq in arithmetic operations:"
+sum=0
+for i in $(seq 1 5)
+do
+    sum=$((sum + i))
+    echo "Running sum: $sum"
+done
+echo "Final sum of numbers 1 to 5: $sum"
 
-echo "Control structures demonstration completed."
+echo "Control structures and seq demonstration completed."

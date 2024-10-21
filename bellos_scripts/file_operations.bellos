@@ -8,37 +8,37 @@ echo "Creating test file..."
 write test.txt "Hello, World!"
 
 # Read the contents of the file
-echo "\nReading test file:"
+echo "Reading test file:"
 read test.txt
 
 # Append to the file
-echo "\nAppending to test file..."
+echo "Appending to test file..."
 append test.txt "This is a new line"
 
 # Read the updated contents
-echo "\nReading updated test file:"
+echo "Reading updated test file:"
 read test.txt
 
 # Write to a new file
-echo "\nWriting to a new file..."
+echo "Writing to a new file..."
 write new_file.txt "This is a new file"
 
 # Read the new file
-echo "\nReading new file:"
+echo "Reading new file:"
 read new_file.txt
 
 # List files in the current directory
-echo "\nListing files in the current directory:"
+echo "Listing files in the current directory:"
 ls -l
 
 # Rename a file
-echo "\nRenaming file..."
+echo "Renaming file..."
 mv new_file.txt renamed_file.txt
 
 # Delete files
-echo "\nDeleting files..."
+echo "Deleting files..."
 rm test.txt renamed_file.txt
 
 # List files again to confirm deletion
-echo "\nListing files after deletion:"
+echo "Listing files after deletion:"
 ls -l
