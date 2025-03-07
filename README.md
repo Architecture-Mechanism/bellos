@@ -1,6 +1,11 @@
 # bellos
 - Can be used in any Operating System but Bellande Operating System works optimally when you use Bellos Scripting Language
 
+# bellos Application Manager
+- https://git.bellande-technologies.com/BAIXRI/bellos_application_manager 
+- https://github.com/Application-Interoperability-Xenogen/bellos_application_manager 
+- https://gitlab.com/Bellande-Application-Interoperability-Xenogen-Research-Innovation-Center/bellos_application_manager 
+
 ## Bellande Operating System Scripting Language Features
 - **Command Execution**: Run both built-in and external commands.
 - **Variable Assignment and Expansion**: Assign and use variables within scripts or interactive mode.
@@ -23,11 +28,17 @@
 - After install you can run the script with ```./hello_world.bellos```
 
 # Usage of Bellande Rust Executable Builder
+- https://git.bellande-technologies.com/BAMRI/bellande_rust_executable
 - https://github.com/Architecture-Mechanism/bellande_rust_executable
+- https://gitlab.com/Bellande-Architecture-Mechanism-Research-Innovation-Center/bellande_rust_executable
+
+## Command
 - ```bellande_rust_executable -d dependencies.bellande -s src -m bellos.rs -o executable/bellos``` 
 
 # Usage of Bellande Rust Importer
+- https://git.bellande-technologies.com/BAMRI/bellande_importer
 - https://github.com/Architecture-Mechanism/bellande_importer
+- https://gitlab.com/Bellande-Architecture-Mechanism-Research-Innovation-Center/bellande_importer
 
 # Bellos executable run scripts
 ```
