@@ -83,7 +83,7 @@ License: GNU General Public License v3.0
 # Legal Documentation
 
 ## License
-Bellande Mesh Sync is distributed under the [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.en.html).
+Bellos is distributed under the [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.en.html).
 
 For detailed license information, see:
 - [Bellande Git LICENSE](https://git.bellande-technologies.com/BAMRI/bellos/blob/main/LICENSE)
