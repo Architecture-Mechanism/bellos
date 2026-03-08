@@ -2,7 +2,7 @@
 - Can be used in any Operating System but Bellande Operating System works optimally when you use Bellos Scripting Language
 
 ## Published Paper
-- [![Published Paper](https://img.shields.io/badge/Published_Paper-Bellande%20Limit-0099cc?style=for-the-badge)](https://www.researchgate.net/publication/401679152_Bellos_Architecture_Design_and_Full_Implementation_of_the_Operating_System_Memory-Safe_Scripting_Language_in_Rust)
+- [![Published Paper](https://img.shields.io/badge/Published_Paper-Bellos-0099cc?style=for-the-badge)](https://www.researchgate.net/publication/401679152_Bellos_Architecture_Design_and_Full_Implementation_of_the_Operating_System_Memory-Safe_Scripting_Language_in_Rust)
 
 # TODO
 - Make it able to run on the browser 
